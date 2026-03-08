@@ -64,3 +64,4 @@ backup*.sql
 # PhpStorm compatibility symlinks
 docker-compose.yaml
 docker-compose.override.yml
+.worktrees/
