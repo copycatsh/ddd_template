@@ -32,7 +32,7 @@ ehthumbs.db
 Thumbs.db
 
 # Miscellaneous
-.tmp/ 
+.tmp/
 
 ###> symfony/framework-bundle ###
 /.env
@@ -65,3 +65,4 @@ backup*.sql
 docker-compose.yaml
 docker-compose.override.yml
 .worktrees/
+.claude/agent-memory/
