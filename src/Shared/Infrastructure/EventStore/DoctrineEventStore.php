@@ -117,7 +117,16 @@ class DoctrineEventStore implements EventStoreInterface
         $stmt = $this->connection->prepare($sql);
         $stmt->bindValue(':aggregate_id', $aggregateId);
         $stmt->bindValue(':event_type', $event->getEventType());
-        $stmt->bindValue(':event_data', json_encode($event->getEventData()));
+        $encoded = json_encode($event->getEventData());
+        if ($encoded === false) {
+            throw new \RuntimeException(sprintf(
+                'Failed to encode event data for %s (aggregate %s): %s',
+                $event->getEventType(),
+                $aggregateId,
+                json_last_error_msg()
+            ));
+        }
+        $stmt->bindValue(':event_data', $encoded);
         $stmt->bindValue(':version', $version);
         $stmt->bindValue(':occurred_at', $event->getOccurredAt()->format('Y-m-d H:i:s'));
         
@@ -149,42 +158,79 @@ class DoctrineEventStore implements EventStoreInterface
     {
         $eventType = $row['event_type'];
         $eventData = json_decode($row['event_data'], true);
-        
+
+        if ($eventData === null && json_last_error() !== JSON_ERROR_NONE) {
+            throw new \RuntimeException(sprintf(
+                'Failed to decode event data for event type %s: %s',
+                $eventType,
+                json_last_error_msg()
+            ));
+        }
+
         if (!class_exists($eventType)) {
             throw new \RuntimeException("Event type {$eventType} not found");
         }
-        
-        // Use reflection to create instance with proper constructor arguments
+
         $reflectionClass = new \ReflectionClass($eventType);
         $constructor = $reflectionClass->getConstructor();
-        
-        if ($constructor) {
-            $parameters = $constructor->getParameters();
-            $args = [];
-            
-            foreach ($parameters as $param) {
-                $paramName = $param->getName();
-                
-                if ($paramName === 'currency') {
-                    $args[] = \App\Account\Domain\ValueObject\Currency::from($eventData[$paramName]);
-                } elseif ($paramName === 'role') {
-                    $args[] = \App\User\Domain\ValueObject\UserRole::from($eventData[$paramName]);
-                } elseif ($paramName === 'amount') {
-                    $args[] = new \App\Account\Domain\ValueObject\Money(
-                        $eventData['amount'],
-                        \App\Account\Domain\ValueObject\Currency::from($eventData['currency'])
-                    );
-                } elseif ($paramName === 'oldEmail' || $paramName === 'newEmail') {
-                    // Deserialization of Email VO for UserEmailChangedEvent
-                    $args[] = new \App\User\Domain\ValueObject\Email($eventData[$paramName]);
-                } else {
-                    $args[] = $eventData[$paramName] ?? null;
-                }
-            }
-            
-            return $reflectionClass->newInstanceArgs($args);
+
+        if (!$constructor) {
+            throw new \RuntimeException(sprintf(
+                'Event class %s has no constructor; cannot deserialize event data',
+                $eventType
+            ));
         }
-        
-        return new $eventType();
+
+        $args = [];
+
+        foreach ($constructor->getParameters() as $param) {
+            $paramName = $param->getName();
+            $type = $param->getType();
+            $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
+
+            if ($typeName === \App\Account\Domain\ValueObject\Money::class) {
+                if (!isset($eventData['amount'], $eventData['currency'])) {
+                    throw new \RuntimeException(sprintf(
+                        'Missing amount/currency in event data for Money parameter "%s" in event %s',
+                        $paramName,
+                        $eventType
+                    ));
+                }
+                $args[] = new \App\Account\Domain\ValueObject\Money(
+                    $eventData['amount'],
+                    \App\Account\Domain\ValueObject\Currency::from($eventData['currency'])
+                );
+            } elseif ($typeName === \App\User\Domain\ValueObject\Email::class) {
+                if (!array_key_exists($paramName, $eventData)) {
+                    throw new \RuntimeException(sprintf(
+                        'Missing required key "%s" in event data for event type %s',
+                        $paramName,
+                        $eventType
+                    ));
+                }
+                $args[] = new \App\User\Domain\ValueObject\Email($eventData[$paramName]);
+            } elseif ($typeName !== null && enum_exists($typeName) && is_a($typeName, \BackedEnum::class, true)) {
+                if (!array_key_exists($paramName, $eventData)) {
+                    throw new \RuntimeException(sprintf(
+                        'Missing required key "%s" in event data for event type %s',
+                        $paramName,
+                        $eventType
+                    ));
+                }
+                $args[] = $typeName::from($eventData[$paramName]);
+            } else {
+                if (!array_key_exists($paramName, $eventData) && !$param->isOptional()) {
+                    throw new \RuntimeException(sprintf(
+                        'Missing required key "%s" in event data for event type %s. Available keys: %s',
+                        $paramName,
+                        $eventType,
+                        implode(', ', array_keys($eventData ?? []))
+                    ));
+                }
+                $args[] = $eventData[$paramName] ?? ($param->isOptional() ? $param->getDefaultValue() : null);
+            }
+        }
+
+        return $reflectionClass->newInstanceArgs($args);
     }
 }

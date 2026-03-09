@@ -32,7 +32,7 @@ ehthumbs.db
 Thumbs.db
 
 # Miscellaneous
-.tmp/ 
+.tmp/
 
 ###> symfony/framework-bundle ###
 /.env
@@ -64,3 +64,6 @@ backup*.sql
 # PhpStorm compatibility symlinks
 docker-compose.yaml
 docker-compose.override.yml
+.worktrees/
+.claude/worktrees/
+.claude/agent-memory/

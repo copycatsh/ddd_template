@@ -4,16 +4,27 @@ namespace App\Account\Application\Handler;
 
 use App\Account\Application\Query\GetAccountBalanceQuery;
 use App\Account\Application\Query\Response\AccountBalanceResponse;
-use App\Account\Domain\Repository\AccountRepositoryInterface;
+use App\Account\Domain\Port\AccountReadModelQuery;
 
 class GetAccountBalanceHandler
 {
     public function __construct(
-        private AccountRepositoryInterface $accountRepository
+        private AccountReadModelQuery $accountReadModel
     ) {}
 
     public function handle(GetAccountBalanceQuery $query): ?AccountBalanceResponse
     {
-        return $this->accountRepository->getAccountBalance($query->getAccountId());
+        $data = $this->accountReadModel->getAccountBalance($query->getAccountId());
+
+        if ($data === null) {
+            return null;
+        }
+
+        return new AccountBalanceResponse(
+            $data->accountId,
+            $data->balance,
+            $data->currency,
+            $data->lastUpdated,
+        );
     }
 }

@@ -19,6 +19,9 @@ services:
     App\Account\Domain\Repository\AccountRepositoryInterface:
         alias: App\Account\Infrastructure\Repository\DoctrineAccountRepository
 
+    App\Account\Domain\Port\AccountReadModelQuery:
+        alias: App\Account\Infrastructure\Repository\DoctrineAccountReadModelQuery
+
     # Event Store
     App\Shared\Infrastructure\EventStore\EventStoreInterface:
         class: App\Shared\Infrastructure\EventStore\DoctrineEventStore
