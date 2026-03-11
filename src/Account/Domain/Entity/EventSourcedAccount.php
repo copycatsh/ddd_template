@@ -23,6 +23,7 @@ class EventSourcedAccount extends AbstractAggregateRoot
     {
         $account = new self($accountId);
         $account->recordEvent(new AccountCreatedEvent($accountId, $userId, $currency));
+
         return $account;
     }
 

@@ -10,7 +10,7 @@ class MoneyWithdrawnEvent extends AbstractDomainEvent
     public function __construct(
         private string $accountId,
         private Money $amount,
-        private string $newBalance
+        private string $newBalance,
     ) {
         parent::__construct();
     }

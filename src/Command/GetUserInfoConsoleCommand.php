@@ -17,31 +17,32 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class GetUserInfoConsoleCommand extends Command
 {
     public function __construct(
-        private EventSourcedUserRepositoryInterface $userRepository
+        private EventSourcedUserRepositoryInterface $userRepository,
     ) {
         parent::__construct();
     }
-    
+
     protected function configure(): void
     {
         $this->addArgument('userId', InputArgument::REQUIRED, 'User ID');
     }
-    
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
         $userId = $input->getArgument('userId');
-        
+
         try {
             $user = $this->userRepository->findById($userId);
-            
+
             if (!$user) {
                 $io->error("User not found: $userId");
+
                 return Command::FAILURE;
             }
-            
+
             $io->title('User Information (from Event Store)');
-            
+
             $io->table(
                 ['Property', 'Value'],
                 [
@@ -51,13 +52,13 @@ class GetUserInfoConsoleCommand extends Command
                     ['Version', $user->getVersion()],
                 ]
             );
-            
+
             $io->success('User loaded from Event Store successfully!');
-            
+
             return Command::SUCCESS;
-            
         } catch (\Exception $e) {
-            $io->error('Error: ' . $e->getMessage());
+            $io->error('Error: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

@@ -10,8 +10,9 @@ use Symfony\Component\Uid\Uuid;
 class EventSourcedCreateAccountHandler
 {
     public function __construct(
-        private EventSourcedAccountRepositoryInterface $accountRepository
-    ) {}
+        private EventSourcedAccountRepositoryInterface $accountRepository,
+    ) {
+    }
 
     public function handle(CreateAccountCommand $command): string
     {
@@ -20,13 +21,13 @@ class EventSourcedCreateAccountHandler
             $command->getUserId(),
             $command->getCurrency()
         );
-        
+
         if ($existingAccount) {
             throw new \DomainException('Account already exists for this user and currency');
         }
 
         $accountId = Uuid::v4()->toRfc4122();
-        
+
         $account = EventSourcedAccount::create(
             $accountId,
             $command->getUserId(),

@@ -8,8 +8,9 @@ class WithdrawMoneyCommand
 {
     public function __construct(
         private string $accountId,
-        private Money $amount
-    ) {}
+        private Money $amount,
+    ) {
+    }
 
     public function getAccountId(): string
     {

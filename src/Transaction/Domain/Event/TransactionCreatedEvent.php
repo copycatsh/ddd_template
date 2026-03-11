@@ -12,41 +12,41 @@ class TransactionCreatedEvent extends AbstractDomainEvent
         private string $accountId,
         private TransactionType $type,
         private string $amount,
-        private string $currency
+        private string $currency,
     ) {
         parent::__construct();
     }
-    
+
     public function getAggregateId(): string
     {
         return $this->transactionId;
     }
-    
+
     public function getTransactionId(): string
     {
         return $this->transactionId;
     }
-    
+
     public function getAccountId(): string
     {
         return $this->accountId;
     }
-    
+
     public function getType(): TransactionType
     {
         return $this->type;
     }
-    
+
     public function getAmount(): string
     {
         return $this->amount;
     }
-    
+
     public function getCurrency(): string
     {
         return $this->currency;
     }
-    
+
     public function getEventData(): array
     {
         return [

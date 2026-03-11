@@ -50,7 +50,7 @@ use Doctrine\ORM\Mapping as ORM;
         new Get(
             uriTemplate: '/accounts/{id}/transactions',
             provider: AccountTransactionsStateProvider::class
-        )
+        ),
     ]
 )]
 class Account

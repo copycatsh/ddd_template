@@ -9,13 +9,14 @@ use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 class EventSourcedGetAccountBalanceHandler
 {
     public function __construct(
-        private EventSourcedAccountRepositoryInterface $accountRepository
-    ) {}
+        private EventSourcedAccountRepositoryInterface $accountRepository,
+    ) {
+    }
 
     public function handle(GetAccountBalanceQuery $query): ?AccountBalanceResponse
     {
         $account = $this->accountRepository->findById($query->getAccountId());
-        
+
         if (!$account) {
             return null;
         }

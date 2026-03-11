@@ -10,7 +10,7 @@ class AccountCreatedEvent extends AbstractDomainEvent
     public function __construct(
         private string $accountId,
         private string $userId,
-        private Currency $currency
+        private Currency $currency,
     ) {
         parent::__construct();
     }

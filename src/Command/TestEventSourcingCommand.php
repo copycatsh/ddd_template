@@ -7,8 +7,8 @@ use App\Account\Application\Command\DepositMoneyCommand;
 use App\Account\Application\Command\WithdrawMoneyCommand;
 use App\Account\Application\Handler\EventSourcedCreateAccountHandler;
 use App\Account\Application\Handler\EventSourcedDepositMoneyHandler;
-use App\Account\Application\Handler\EventSourcedWithdrawMoneyHandler;
 use App\Account\Application\Handler\EventSourcedGetAccountBalanceHandler;
+use App\Account\Application\Handler\EventSourcedWithdrawMoneyHandler;
 use App\Account\Application\Query\GetAccountBalanceQuery;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
@@ -34,7 +34,7 @@ class TestEventSourcingCommand extends Command
         private EventSourcedDepositMoneyHandler $depositMoneyHandler,
         private EventSourcedWithdrawMoneyHandler $withdrawMoneyHandler,
         private EventSourcedGetAccountBalanceHandler $getBalanceHandler,
-        private EventStoreInterface $eventStore
+        private EventStoreInterface $eventStore,
     ) {
         parent::__construct();
     }
@@ -42,7 +42,7 @@ class TestEventSourcingCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $io->title('Testing Event Sourcing Implementation');
 
         try {
@@ -97,16 +97,17 @@ class TestEventSourcingCommand extends Command
                     return [
                         $event->getEventType(),
                         json_encode($event->getEventData()),
-                        $event->getOccurredAt()->format('Y-m-d H:i:s')
+                        $event->getOccurredAt()->format('Y-m-d H:i:s'),
                     ];
                 }, $events)
             );
 
             $io->success('Event Sourcing test completed successfully!');
-            return Command::SUCCESS;
 
+            return Command::SUCCESS;
         } catch (\Exception $e) {
-            $io->error('Error: ' . $e->getMessage());
+            $io->error('Error: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

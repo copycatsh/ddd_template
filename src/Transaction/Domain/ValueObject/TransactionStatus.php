@@ -7,19 +7,19 @@ enum TransactionStatus: string
     case PENDING = 'PENDING';
     case COMPLETED = 'COMPLETED';
     case FAILED = 'FAILED';
-    
+
     public function isPending(): bool
     {
-        return $this === self::PENDING;
+        return self::PENDING === $this;
     }
-    
+
     public function isCompleted(): bool
     {
-        return $this === self::COMPLETED;
+        return self::COMPLETED === $this;
     }
-    
+
     public function isFailed(): bool
     {
-        return $this === self::FAILED;
+        return self::FAILED === $this;
     }
 }

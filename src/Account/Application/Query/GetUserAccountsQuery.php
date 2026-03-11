@@ -5,8 +5,9 @@ namespace App\Account\Application\Query;
 class GetUserAccountsQuery
 {
     public function __construct(
-        private string $userId
-    ) {}
+        private string $userId,
+    ) {
+    }
 
     public function getUserId(): string
     {

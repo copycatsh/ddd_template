@@ -20,11 +20,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class CreateUserEventSourcedConsoleCommand extends Command
 {
     public function __construct(
-        private EventSourcedCreateUserHandler $handler
+        private EventSourcedCreateUserHandler $handler,
     ) {
         parent::__construct();
     }
-    
+
     protected function configure(): void
     {
         $this
@@ -33,33 +33,33 @@ class CreateUserEventSourcedConsoleCommand extends Command
             ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'User role', 'USER')
         ;
     }
-    
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $email = $input->getArgument('email');
         $password = $input->getArgument('password');
         $roleString = $input->getOption('role');
-        
+
         try {
-            $role = UserRole::from('ROLE_' . strtoupper($roleString));
+            $role = UserRole::from('ROLE_'.strtoupper($roleString));
             $command = new CreateUserCommand($email, $password, $role);
-            
+
             $userId = $this->handler->handle($command);
-            
+
             $io->success([
-                "User created via Event Sourcing!",
+                'User created via Event Sourcing!',
                 "User ID: $userId",
-                "Email: $email"
+                "Email: $email",
             ]);
-            
-            $io->note('Check Event Store: SELECT * FROM event_store WHERE aggregate_id = \'' . $userId . '\'');
-            
+
+            $io->note('Check Event Store: SELECT * FROM event_store WHERE aggregate_id = \''.$userId.'\'');
+
             return Command::SUCCESS;
-            
         } catch (\Exception $e) {
-            $io->error('Error: ' . $e->getMessage());
+            $io->error('Error: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

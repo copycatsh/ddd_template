@@ -12,7 +12,7 @@ class TransactionNotFoundException extends DomainException
             sprintf('Transaction with ID "%s" not found', $transactionId)
         );
     }
-    
+
     public static function forAccount(string $accountId): self
     {
         return new self(

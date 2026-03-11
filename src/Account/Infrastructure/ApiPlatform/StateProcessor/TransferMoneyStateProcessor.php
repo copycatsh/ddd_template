@@ -11,11 +11,12 @@ use App\Account\Infrastructure\ApiPlatform\Dto\TransferMoneyDto;
 class TransferMoneyStateProcessor implements ProcessorInterface
 {
     public function __construct(
-        private readonly TransferMoneyHandler $handler
-    ) {}
-    
+        private readonly TransferMoneyHandler $handler,
+    ) {
+    }
+
     /**
-     * Process transfer money request
+     * Process transfer money request.
      *
      * @param TransferMoneyDto $data
      */
@@ -24,21 +25,21 @@ class TransferMoneyStateProcessor implements ProcessorInterface
         if (!$data instanceof TransferMoneyDto) {
             throw new \InvalidArgumentException('Expected TransferMoneyDto');
         }
-        
+
         $fromAccountId = $uriVariables['id'] ?? null;
         if (!$fromAccountId) {
             throw new \InvalidArgumentException('Account ID is required');
         }
-        
+
         $command = new TransferMoneyCommand(
             $fromAccountId,
             $data->toAccountId,
             $data->getMoney()
         );
-        
+
         // Execute via Handler → Saga
         $transactionId = $this->handler->handle($command);
-        
+
         return [
             'success' => true,
             'transactionId' => $transactionId,

@@ -2,8 +2,8 @@
 
 namespace App\User\Domain\Event;
 
-use App\User\Domain\ValueObject\UserRole;
 use App\Shared\Domain\Event\AbstractDomainEvent;
+use App\User\Domain\ValueObject\UserRole;
 
 class UserCreatedEvent extends AbstractDomainEvent
 {
@@ -11,7 +11,7 @@ class UserCreatedEvent extends AbstractDomainEvent
         private string $userId,
         private string $email,
         private string $hashedPassword,
-        private UserRole $role
+        private UserRole $role,
     ) {
         parent::__construct();
     }

@@ -8,8 +8,9 @@ use App\Account\Application\Saga\TransferMoneySaga;
 class TransferMoneyHandler
 {
     public function __construct(
-        private readonly TransferMoneySaga $saga
-    ) {}
+        private readonly TransferMoneySaga $saga,
+    ) {
+    }
 
     public function handle(TransferMoneyCommand $command): string
     {

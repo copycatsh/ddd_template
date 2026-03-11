@@ -10,8 +10,9 @@ use App\Account\Application\Query\GetUserAccountsQuery;
 class UserAccountsStateProvider implements ProviderInterface
 {
     public function __construct(
-        private GetUserAccountsHandler $handler
-    ) {}
+        private GetUserAccountsHandler $handler,
+    ) {
+    }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
     {
@@ -21,7 +22,7 @@ class UserAccountsStateProvider implements ProviderInterface
         }
 
         $query = new GetUserAccountsQuery($userId);
-        
+
         return $this->handler->handle($query);
     }
 }

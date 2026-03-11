@@ -9,8 +9,9 @@ class CreateUserCommand
     public function __construct(
         private string $email,
         private string $password,
-        private UserRole $role = UserRole::USER
-    ) {}
+        private UserRole $role = UserRole::USER,
+    ) {
+    }
 
     public function getEmail(): string
     {

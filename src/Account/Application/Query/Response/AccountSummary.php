@@ -8,6 +8,7 @@ class AccountSummary
         public readonly string $accountId,
         public readonly string $balance,
         public readonly string $currency,
-        public readonly \DateTimeImmutable $createdAt
-    ) {}
+        public readonly \DateTimeImmutable $createdAt,
+    ) {
+    }
 }

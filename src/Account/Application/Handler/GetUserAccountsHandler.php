@@ -10,8 +10,9 @@ use App\Account\Domain\Port\AccountReadModelQuery;
 class GetUserAccountsHandler
 {
     public function __construct(
-        private AccountReadModelQuery $accountReadModel
-    ) {}
+        private AccountReadModelQuery $accountReadModel,
+    ) {
+    }
 
     public function handle(GetUserAccountsQuery $query): UserAccountsResponse
     {

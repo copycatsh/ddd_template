@@ -43,14 +43,14 @@ abstract class AbstractAggregateRoot implements AggregateRootInterface
 
     public function applyEvent(DomainEventInterface $event): void
     {
-        $this->version++;
+        ++$this->version;
         $this->when($event);
     }
 
     protected function when(DomainEventInterface $event): void
     {
         $method = $this->getEventHandlerMethod($event);
-        
+
         if (method_exists($this, $method)) {
             $this->$method($event);
         }
@@ -59,7 +59,8 @@ abstract class AbstractAggregateRoot implements AggregateRootInterface
     private function getEventHandlerMethod(DomainEventInterface $event): string
     {
         $className = (new \ReflectionClass($event))->getShortName();
-        return 'apply' . $className;
+
+        return 'apply'.$className;
     }
 
     public static function reconstitute(string $id, array $events): static
@@ -69,11 +70,11 @@ abstract class AbstractAggregateRoot implements AggregateRootInterface
         $instance->id = $id;
         $instance->version = 0;
         $instance->uncommittedEvents = [];
-        
+
         foreach ($events as $event) {
             $instance->applyEvent($event);
         }
-        
+
         return $instance;
     }
 }

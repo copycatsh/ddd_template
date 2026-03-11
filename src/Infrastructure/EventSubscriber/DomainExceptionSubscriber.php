@@ -60,7 +60,7 @@ class DomainExceptionSubscriber implements EventSubscriberInterface
             default => null,
         };
 
-        if ($response !== null) {
+        if (null !== $response) {
             $event->setResponse($response);
         }
     }

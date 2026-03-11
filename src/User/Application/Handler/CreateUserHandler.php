@@ -12,8 +12,9 @@ class CreateUserHandler
 {
     public function __construct(
         private UserRepositoryInterface $userRepository,
-        private UserPasswordHasherInterface $passwordHasher
-    ) {}
+        private UserPasswordHasherInterface $passwordHasher,
+    ) {
+    }
 
     public function handle(CreateUserCommand $command): string
     {
@@ -24,7 +25,7 @@ class CreateUserHandler
         }
 
         $userId = Uuid::v4()->toRfc4122();
-        
+
         // Create user with temporary password
         $user = new User(
             $userId,
@@ -35,7 +36,7 @@ class CreateUserHandler
 
         // Hash password
         $hashedPassword = $this->passwordHasher->hashPassword($user, $command->getPassword());
-        
+
         // Create user with hashed password
         $user = new User(
             $userId,

@@ -9,14 +9,15 @@ use App\Account\Domain\Port\AccountReadModelQuery;
 class GetAccountBalanceHandler
 {
     public function __construct(
-        private AccountReadModelQuery $accountReadModel
-    ) {}
+        private AccountReadModelQuery $accountReadModel,
+    ) {
+    }
 
     public function handle(GetAccountBalanceQuery $query): ?AccountBalanceResponse
     {
         $data = $this->accountReadModel->getAccountBalance($query->getAccountId());
 
-        if ($data === null) {
+        if (null === $data) {
             return null;
         }
 

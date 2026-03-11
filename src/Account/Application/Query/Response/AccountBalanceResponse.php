@@ -8,6 +8,7 @@ class AccountBalanceResponse
         public readonly string $accountId,
         public readonly string $balance,
         public readonly string $currency,
-        public readonly \DateTimeImmutable $lastUpdated
-    ) {}
+        public readonly \DateTimeImmutable $lastUpdated,
+    ) {
+    }
 }

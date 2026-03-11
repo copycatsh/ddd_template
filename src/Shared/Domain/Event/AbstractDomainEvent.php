@@ -29,6 +29,6 @@ abstract class AbstractDomainEvent implements DomainEventInterface
     }
 
     abstract public function getAggregateId(): string;
-    
+
     abstract public function getEventData(): array;
 }
