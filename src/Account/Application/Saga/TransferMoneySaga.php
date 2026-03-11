@@ -5,9 +5,13 @@ namespace App\Account\Application\Saga;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Money;
 use App\Transaction\Domain\Entity\Transaction;
+use App\Transaction\Domain\Event\TransactionCompletedEvent;
+use App\Transaction\Domain\Event\TransactionCreatedEvent;
+use App\Transaction\Domain\Event\TransactionFailedEvent;
 use App\Transaction\Domain\Repository\TransactionRepositoryInterface;
 use App\Transaction\Domain\ValueObject\TransactionType;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
 class TransferMoneySaga
@@ -16,6 +20,7 @@ class TransferMoneySaga
         private readonly AccountRepositoryInterface $accountRepository,
         private readonly TransactionRepositoryInterface $transactionRepository,
         private readonly EntityManagerInterface $entityManager,
+        private readonly MessageBusInterface $messageBus,
     ) {
     }
 
@@ -74,6 +79,14 @@ class TransferMoneySaga
             );
             $this->transactionRepository->save($transaction);
 
+            $this->messageBus->dispatch(new TransactionCreatedEvent(
+                $transactionId,
+                $fromAccountId,
+                TransactionType::TRANSFER,
+                $amount->getAmount(),
+                $amount->getCurrency()->value,
+            ));
+
             // Step 2: Withdraw з source account
             $fromAccount->withdraw($amount);
             $this->accountRepository->save($fromAccount);
@@ -89,10 +102,23 @@ class TransferMoneySaga
             // Commit - apply all changes together
             $this->entityManager->commit();
 
+            $this->messageBus->dispatch(new TransactionCompletedEvent(
+                $transactionId,
+                $fromAccountId,
+            ));
+
             return $transactionId;
         } catch (\Exception $e) {
             // Rollback - automatically roll back ALL changes
             $this->entityManager->rollback();
+
+            if (isset($transactionId)) {
+                $this->messageBus->dispatch(new TransactionFailedEvent(
+                    $transactionId,
+                    $fromAccountId,
+                    $e->getMessage(),
+                ));
+            }
 
             // Re-throw with context
             throw new \RuntimeException("Transfer failed: {$e->getMessage()}", 0, $e);
