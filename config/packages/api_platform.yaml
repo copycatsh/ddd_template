@@ -1,7 +1,7 @@
 api_platform:
     title: 'Fintech DDD API'
     version: '1.0.0'
-    description: 'Educational fintech API demonstrating DDD, CQRS, and Event Sourcing'
+    description: 'Fintech DDD API demonstrating DDD, CQRS, and Event Sourcing'
     mapping:
         paths:
             - '%kernel.project_dir%/src/Account/Domain/Entity'

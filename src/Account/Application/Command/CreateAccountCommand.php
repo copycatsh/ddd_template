@@ -8,8 +8,9 @@ class CreateAccountCommand
 {
     public function __construct(
         private string $userId,
-        private Currency $currency
-    ) {}
+        private Currency $currency,
+    ) {
+    }
 
     public function getUserId(): string
     {

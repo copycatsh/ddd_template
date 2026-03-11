@@ -19,11 +19,11 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class ChangeUserEmailConsoleCommand extends Command
 {
     public function __construct(
-        private EventSourcedChangeUserEmailHandler $handler
+        private EventSourcedChangeUserEmailHandler $handler,
     ) {
         parent::__construct();
     }
-    
+
     protected function configure(): void
     {
         $this
@@ -31,41 +31,43 @@ class ChangeUserEmailConsoleCommand extends Command
             ->addArgument('newEmail', InputArgument::REQUIRED, 'New email address')
         ;
     }
-    
+
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $userId = $input->getArgument('userId');
         $newEmailString = $input->getArgument('newEmail');
-        
+
         $io->title('Changing User Email (Event Sourcing)');
-        
+
         try {
             $newEmail = new Email($newEmailString);
-            
+
             $command = new ChangeUserEmailCommand($userId, $newEmail);
-            
+
             $this->handler->handle($command);
-            
+
             $io->success([
-                "Email changed successfully!",
+                'Email changed successfully!',
                 "User ID: $userId",
-                "New Email: {$newEmail->getValue()}"
+                "New Email: {$newEmail->getValue()}",
             ]);
-            
+
             $io->note('A UserEmailChangedEvent has been recorded in the Event Store.');
-            
+
             return Command::SUCCESS;
-            
         } catch (\InvalidArgumentException $e) {
-            $io->error('Invalid email format: ' . $e->getMessage());
+            $io->error('Invalid email format: '.$e->getMessage());
+
             return Command::FAILURE;
         } catch (\DomainException $e) {
-            $io->error('Domain error: ' . $e->getMessage());
+            $io->error('Domain error: '.$e->getMessage());
+
             return Command::FAILURE;
         } catch (\Exception $e) {
-            $io->error('Error changing email: ' . $e->getMessage());
+            $io->error('Error changing email: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

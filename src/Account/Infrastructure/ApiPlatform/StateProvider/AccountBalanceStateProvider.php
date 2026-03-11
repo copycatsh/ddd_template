@@ -10,8 +10,9 @@ use App\Account\Application\Query\GetAccountBalanceQuery;
 class AccountBalanceStateProvider implements ProviderInterface
 {
     public function __construct(
-        private GetAccountBalanceHandler $handler
-    ) {}
+        private GetAccountBalanceHandler $handler,
+    ) {
+    }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): object|array|null
     {
@@ -21,7 +22,7 @@ class AccountBalanceStateProvider implements ProviderInterface
         }
 
         $query = new GetAccountBalanceQuery($accountId);
-        
+
         return $this->handler->handle($query);
     }
 }

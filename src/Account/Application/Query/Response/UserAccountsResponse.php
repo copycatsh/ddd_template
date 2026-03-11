@@ -7,6 +7,7 @@ class UserAccountsResponse
     public function __construct(
         public readonly string $userId,
         /** @var AccountSummary[] */
-        public readonly array $accounts
-    ) {}
+        public readonly array $accounts,
+    ) {
+    }
 }

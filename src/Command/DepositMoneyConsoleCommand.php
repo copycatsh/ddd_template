@@ -20,7 +20,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class DepositMoneyConsoleCommand extends Command
 {
     public function __construct(
-        private DepositMoneyHandler $depositMoneyHandler
+        private DepositMoneyHandler $depositMoneyHandler,
     ) {
         parent::__construct();
     }
@@ -37,7 +37,7 @@ class DepositMoneyConsoleCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $accountId = $input->getArgument('accountId');
         $amount = $input->getArgument('amount');
         $currencyString = $input->getArgument('currency');
@@ -46,6 +46,7 @@ class DepositMoneyConsoleCommand extends Command
             $currency = Currency::from(strtoupper($currencyString));
         } catch (\ValueError $e) {
             $io->error('Invalid currency. Use UAH or USD.');
+
             return Command::FAILURE;
         }
 
@@ -55,9 +56,11 @@ class DepositMoneyConsoleCommand extends Command
         try {
             $this->depositMoneyHandler->handle($command);
             $io->success("Successfully deposited {$amount} {$currency->value} to account {$accountId}");
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $io->error('Error depositing money: ' . $e->getMessage());
+            $io->error('Error depositing money: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

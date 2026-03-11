@@ -15,10 +15,10 @@ class TransactionDto
         public readonly string $currency,
         public readonly string $status,
         public readonly string $createdAt,
-        public readonly ?string $completedAt
+        public readonly ?string $completedAt,
     ) {
     }
-    
+
     public static function fromEntity(Transaction $transaction): self
     {
         return new self(

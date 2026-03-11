@@ -8,13 +8,14 @@ use App\Account\Domain\Repository\AccountRepositoryInterface;
 class WithdrawMoneyHandler
 {
     public function __construct(
-        private AccountRepositoryInterface $accountRepository
-    ) {}
+        private AccountRepositoryInterface $accountRepository,
+    ) {
+    }
 
     public function handle(WithdrawMoneyCommand $command): void
     {
         $account = $this->accountRepository->findById($command->getAccountId());
-        
+
         if (!$account) {
             throw new \InvalidArgumentException('Account not found');
         }

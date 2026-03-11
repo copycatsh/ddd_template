@@ -8,26 +8,26 @@ class TransactionCompletedEvent extends AbstractDomainEvent
 {
     public function __construct(
         private string $transactionId,
-        private string $accountId
+        private string $accountId,
     ) {
         parent::__construct();
     }
-    
+
     public function getAggregateId(): string
     {
         return $this->transactionId;
     }
-    
+
     public function getTransactionId(): string
     {
         return $this->transactionId;
     }
-    
+
     public function getAccountId(): string
     {
         return $this->accountId;
     }
-    
+
     public function getEventData(): array
     {
         return [

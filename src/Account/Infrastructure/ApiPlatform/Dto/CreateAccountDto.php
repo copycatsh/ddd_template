@@ -14,7 +14,7 @@ use Symfony\Component\Validator\Constraints as Assert;
             uriTemplate: '/accounts',
             output: Account::class,
             processor: CreateAccountStateProcessor::class
-        )
+        ),
     ]
 )]
 class CreateAccountDto

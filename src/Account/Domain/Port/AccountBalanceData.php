@@ -9,5 +9,6 @@ final class AccountBalanceData
         public readonly string $balance,
         public readonly string $currency,
         public readonly \DateTimeImmutable $lastUpdated,
-    ) {}
+    ) {
+    }
 }

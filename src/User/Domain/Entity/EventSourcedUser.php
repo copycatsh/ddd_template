@@ -2,14 +2,13 @@
 
 namespace App\User\Domain\Entity;
 
-use App\User\Domain\Event\UserCreatedEvent;
-use App\User\Domain\ValueObject\UserRole;
 use App\Shared\Domain\Aggregate\AbstractAggregateRoot;
-use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use App\User\Domain\Event\UserCreatedEvent;
 use App\User\Domain\Event\UserEmailChangedEvent;
 use App\User\Domain\ValueObject\Email;
-
+use App\User\Domain\ValueObject\UserRole;
+use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 class EventSourcedUser extends AbstractAggregateRoot implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -21,15 +20,16 @@ class EventSourcedUser extends AbstractAggregateRoot implements UserInterface, P
     {
         $user = new self($userId);
         $user->recordEvent(new UserCreatedEvent($userId, $email, $hashedPassword, $role));
+
         return $user;
     }
-    
+
     public function changeEmail(Email $newEmail): void
     {
         if ($this->email->equals($newEmail)) {
             throw new \DomainException('New email must be different from current email');
         }
-        
+
         $this->recordEvent(new UserEmailChangedEvent(
             $this->getId(),
             $this->email,
@@ -73,7 +73,7 @@ class EventSourcedUser extends AbstractAggregateRoot implements UserInterface, P
         $this->password = $event->getHashedPassword();
         $this->role = $event->getRole();
     }
-    
+
     protected function applyUserEmailChangedEvent(UserEmailChangedEvent $event): void
     {
         $this->email = $event->getNewEmail();

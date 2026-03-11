@@ -29,7 +29,7 @@ class Money
 
     public function equals(Money $other): bool
     {
-        return bccomp($this->amount, $other->amount, 2) === 0 
+        return 0 === bccomp($this->amount, $other->amount, 2)
             && $this->currency->equals($other->currency);
     }
 
@@ -49,7 +49,7 @@ class Money
         }
 
         $result = bcsub($this->amount, $other->amount, 2);
-        
+
         if (bccomp($result, '0', 2) < 0) {
             throw new \InvalidArgumentException('Result cannot be negative');
         }

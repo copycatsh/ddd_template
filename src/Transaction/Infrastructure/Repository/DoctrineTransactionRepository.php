@@ -14,18 +14,18 @@ class DoctrineTransactionRepository extends ServiceEntityRepository implements T
     {
         parent::__construct($registry, Transaction::class);
     }
-    
+
     public function save(Transaction $transaction): void
     {
         $this->getEntityManager()->persist($transaction);
         $this->getEntityManager()->flush();
     }
-    
+
     public function findById(string $id): ?Transaction
     {
         return $this->find($id);
     }
-    
+
     public function findByAccountId(string $accountId): array
     {
         return $this->createQueryBuilder('t')
@@ -36,7 +36,7 @@ class DoctrineTransactionRepository extends ServiceEntityRepository implements T
             ->getQuery()
             ->getResult();
     }
-    
+
     public function findByStatus(TransactionStatus $status): array
     {
         return $this->findBy(
@@ -44,7 +44,7 @@ class DoctrineTransactionRepository extends ServiceEntityRepository implements T
             ['createdAt' => 'DESC']
         );
     }
-    
+
     public function findPendingByAccountId(string $accountId): array
     {
         return $this->createQueryBuilder('t')
@@ -57,7 +57,7 @@ class DoctrineTransactionRepository extends ServiceEntityRepository implements T
             ->getQuery()
             ->getResult();
     }
-    
+
     public function delete(Transaction $transaction): void
     {
         $this->getEntityManager()->remove($transaction);

@@ -20,7 +20,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class CreateUserConsoleCommand extends Command
 {
     public function __construct(
-        private CreateUserHandler $createUserHandler
+        private CreateUserHandler $createUserHandler,
     ) {
         parent::__construct();
     }
@@ -37,15 +37,16 @@ class CreateUserConsoleCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $email = $input->getArgument('email');
         $password = $input->getArgument('password');
         $roleString = $input->getOption('role');
 
         try {
-            $role = UserRole::from('ROLE_' . strtoupper($roleString));
+            $role = UserRole::from('ROLE_'.strtoupper($roleString));
         } catch (\ValueError $e) {
             $io->error('Invalid role. Use USER or ADMIN.');
+
             return Command::FAILURE;
         }
 
@@ -54,9 +55,11 @@ class CreateUserConsoleCommand extends Command
         try {
             $userId = $this->createUserHandler->handle($command);
             $io->success("User created successfully with ID: $userId");
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $io->error('Error creating user: ' . $e->getMessage());
+            $io->error('Error creating user: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

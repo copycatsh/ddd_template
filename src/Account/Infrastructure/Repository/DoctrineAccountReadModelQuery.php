@@ -10,8 +10,9 @@ use Doctrine\DBAL\Connection;
 class DoctrineAccountReadModelQuery implements AccountReadModelQuery
 {
     public function __construct(
-        private Connection $connection
-    ) {}
+        private Connection $connection,
+    ) {
+    }
 
     public function getAccountBalance(string $accountId): ?AccountBalanceData
     {
@@ -20,7 +21,7 @@ class DoctrineAccountReadModelQuery implements AccountReadModelQuery
             ['id' => $accountId]
         );
 
-        if ($row === false) {
+        if (false === $row) {
             return null;
         }
 
@@ -40,7 +41,7 @@ class DoctrineAccountReadModelQuery implements AccountReadModelQuery
         );
 
         return array_map(
-            fn(array $row) => new AccountSummaryData(
+            fn (array $row) => new AccountSummaryData(
                 $row['id'],
                 $row['balance'],
                 $row['currency'],

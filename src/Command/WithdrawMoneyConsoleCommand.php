@@ -20,7 +20,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class WithdrawMoneyConsoleCommand extends Command
 {
     public function __construct(
-        private WithdrawMoneyHandler $withdrawMoneyHandler
+        private WithdrawMoneyHandler $withdrawMoneyHandler,
     ) {
         parent::__construct();
     }
@@ -37,7 +37,7 @@ class WithdrawMoneyConsoleCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $accountId = $input->getArgument('accountId');
         $amount = $input->getArgument('amount');
         $currencyString = $input->getArgument('currency');
@@ -46,6 +46,7 @@ class WithdrawMoneyConsoleCommand extends Command
             $currency = Currency::from(strtoupper($currencyString));
         } catch (\ValueError $e) {
             $io->error('Invalid currency. Use UAH or USD.');
+
             return Command::FAILURE;
         }
 
@@ -55,9 +56,11 @@ class WithdrawMoneyConsoleCommand extends Command
         try {
             $this->withdrawMoneyHandler->handle($command);
             $io->success("Successfully withdrew {$amount} {$currency->value} from account {$accountId}");
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $io->error('Error withdrawing money: ' . $e->getMessage());
+            $io->error('Error withdrawing money: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }

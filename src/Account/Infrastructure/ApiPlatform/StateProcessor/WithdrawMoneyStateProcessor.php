@@ -13,8 +13,9 @@ class WithdrawMoneyStateProcessor implements ProcessorInterface
 {
     public function __construct(
         private WithdrawMoneyHandler $handler,
-        private AccountRepositoryInterface $accountRepository
-    ) {}
+        private AccountRepositoryInterface $accountRepository,
+    ) {
+    }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
     {

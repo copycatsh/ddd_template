@@ -30,7 +30,7 @@ class DoctrineAccountRepository extends ServiceEntityRepository implements Accou
     {
         return $this->findOneBy([
             'userId' => $userId,
-            'currency' => $currency
+            'currency' => $currency,
         ]);
     }
 

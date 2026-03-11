@@ -2,8 +2,8 @@
 
 namespace App\Command;
 
-use App\Account\Application\Query\GetAccountBalanceQuery;
 use App\Account\Application\Handler\GetAccountBalanceHandler;
+use App\Account\Application\Query\GetAccountBalanceQuery;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class GetAccountBalanceConsoleCommand extends Command
 {
     public function __construct(
-        private GetAccountBalanceHandler $getAccountBalanceHandler
+        private GetAccountBalanceHandler $getAccountBalanceHandler,
     ) {
         parent::__construct();
     }
@@ -33,33 +33,35 @@ class GetAccountBalanceConsoleCommand extends Command
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
-        
+
         $accountId = $input->getArgument('accountId');
-        
+
         $query = new GetAccountBalanceQuery($accountId);
-        
+
         try {
             $response = $this->getAccountBalanceHandler->handle($query);
-            
+
             if (!$response) {
                 $io->error("Account with ID {$accountId} not found");
+
                 return Command::FAILURE;
             }
-            
-            $io->success("Account Balance Information:");
+
+            $io->success('Account Balance Information:');
             $io->table(
                 ['Field', 'Value'],
                 [
                     ['Account ID', $response->accountId],
                     ['Balance', $response->balance],
                     ['Currency', $response->currency],
-                    ['Last Updated', $response->lastUpdated->format('Y-m-d H:i:s')]
+                    ['Last Updated', $response->lastUpdated->format('Y-m-d H:i:s')],
                 ]
             );
-            
+
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $io->error('Error getting account balance: ' . $e->getMessage());
+            $io->error('Error getting account balance: '.$e->getMessage());
+
             return Command::FAILURE;
         }
     }
