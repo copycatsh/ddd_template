@@ -22,6 +22,9 @@ services:
     App\Account\Domain\Port\AccountReadModelQuery:
         alias: App\Account\Infrastructure\Repository\DoctrineAccountReadModelQuery
 
+    App\Notification\Domain\Port\NotificationHistoryQuery:
+        alias: App\Notification\Infrastructure\Query\DoctrineNotificationHistoryQuery
+
     # Event Store
     App\Shared\Infrastructure\EventStore\EventStoreInterface:
         class: App\Shared\Infrastructure\EventStore\DoctrineEventStore
