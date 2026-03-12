@@ -40,6 +40,12 @@ patterns to follow, commands to run after.]
 ```
 ---
 
+**CRITICAL:**
+- Output ALL tasks directly in your response as text
+- DO NOT use Claude Code task management system (/tasks, TodoWrite, etc.)
+- DO NOT say "instructions are ready" without showing them
+- Every task MUST have its full Instructions block visible in the response
+
 ## Planning Rules
 
 - `php-test-writer` always runs BEFORE `symfony-ddd-developer` for new classes (TDD)
