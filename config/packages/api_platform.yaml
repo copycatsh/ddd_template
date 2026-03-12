@@ -7,6 +7,7 @@ api_platform:
             - '%kernel.project_dir%/src/Account/Domain/Entity'
             - '%kernel.project_dir%/src/Account/Infrastructure/ApiPlatform/Dto'
             - '%kernel.project_dir%/src/User/Domain/Entity'
+            - '%kernel.project_dir%/src/Notification/Infrastructure/ApiPlatform/Dto'
     patch_formats:
         json: ['application/merge-patch+json']
     swagger:
