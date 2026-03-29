@@ -5,6 +5,7 @@ namespace App\Tests\Unit\Account\Domain\Entity;
 use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Account\Domain\Exception\InvalidAmountException;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use PHPUnit\Framework\TestCase;
@@ -140,6 +141,50 @@ class AccountTest extends TestCase
         // Final withdrawal
         $this->account->withdraw(new Money('250.25', Currency::UAH));
         $this->assertEquals('500.00', $this->account->getBalance()->getAmount());
+    }
+
+    public function testDepositZeroAmountThrowsException(): void
+    {
+        $this->expectException(InvalidAmountException::class);
+        $this->expectExceptionMessage('Amount must be greater than zero');
+
+        $this->account->deposit(new Money('0.00', Currency::UAH));
+    }
+
+    public function testWithdrawZeroAmountThrowsException(): void
+    {
+        $this->account->deposit(new Money('100.00', Currency::UAH));
+
+        $this->expectException(InvalidAmountException::class);
+        $this->expectExceptionMessage('Amount must be greater than zero');
+
+        $this->account->withdraw(new Money('0.00', Currency::UAH));
+    }
+
+    public function testNegativeAmountRejectedByMoneyConstructor(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Amount cannot be negative');
+
+        new Money('-10.00', Currency::UAH);
+    }
+
+    public function testNegativeAmountCannotReachDeposit(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $negativeMoney = new Money('-50.00', Currency::UAH);
+        $this->account->deposit($negativeMoney);
+    }
+
+    public function testNegativeAmountCannotReachWithdraw(): void
+    {
+        $this->account->deposit(new Money('100.00', Currency::UAH));
+
+        $this->expectException(\InvalidArgumentException::class);
+
+        $negativeMoney = new Money('-50.00', Currency::UAH);
+        $this->account->withdraw($negativeMoney);
     }
 
     public function testBalanceReturnsMoneyValueObject(): void

@@ -16,7 +16,7 @@ class GetNotificationHistoryHandler
     ) {
     }
 
-    public function __invoke(GetNotificationHistoryQuery $query): NotificationHistoryResponse
+    public function handle(GetNotificationHistoryQuery $query): NotificationHistoryResponse
     {
         $data = $this->notificationHistoryQuery->getByUserId(
             $query->getUserId(),

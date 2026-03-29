@@ -6,6 +6,7 @@ use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Exception\AccountNotFoundException;
 use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Account\Domain\Exception\InvalidAmountException;
 use App\Shared\Domain\Exception\DomainException;
 use App\User\Domain\Exception\InvalidCredentialsException;
 use App\User\Domain\Exception\UserAlreadyExistsException;
@@ -42,7 +43,8 @@ class DomainExceptionSubscriber implements EventSubscriberInterface
             ),
 
             $exception instanceof InsufficientFundsException,
-            $exception instanceof CurrencyMismatchException => new JsonResponse(
+            $exception instanceof CurrencyMismatchException,
+            $exception instanceof InvalidAmountException => new JsonResponse(
                 ['error' => $exception->getMessage()],
                 Response::HTTP_BAD_REQUEST
             ),

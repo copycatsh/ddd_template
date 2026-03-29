@@ -3,9 +3,11 @@
 namespace App\Account\Infrastructure\Repository;
 
 use App\Account\Domain\Entity\Account;
+use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
+use Doctrine\DBAL\Exception\UniqueConstraintViolationException;
 use Doctrine\Persistence\ManagerRegistry;
 
 class DoctrineAccountRepository extends ServiceEntityRepository implements AccountRepositoryInterface
@@ -17,8 +19,12 @@ class DoctrineAccountRepository extends ServiceEntityRepository implements Accou
 
     public function save(Account $account): void
     {
-        $this->getEntityManager()->persist($account);
-        $this->getEntityManager()->flush();
+        try {
+            $this->getEntityManager()->persist($account);
+            $this->getEntityManager()->flush();
+        } catch (UniqueConstraintViolationException) {
+            throw AccountAlreadyExistsException::forUserAndCurrency($account->getUserId(), $account->getCurrency());
+        }
     }
 
     public function findById(string $id): ?Account

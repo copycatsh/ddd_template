@@ -8,6 +8,7 @@ use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Put;
 use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Account\Domain\Exception\InvalidAmountException;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
@@ -22,6 +23,7 @@ use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'accounts')]
+#[ORM\UniqueConstraint(name: 'UNIQ_CAC89EAC64B64DCC6956883F', columns: ['user_id', 'currency'])]
 #[ApiResource(
     operations: [
         new Get(
@@ -116,6 +118,10 @@ class Account
 
     public function deposit(Money $amount): void
     {
+        if (bccomp($amount->getAmount(), '0', 2) <= 0) {
+            throw InvalidAmountException::mustBePositive();
+        }
+
         if (!$amount->getCurrency()->equals($this->currency)) {
             throw CurrencyMismatchException::forOperation($this->currency, $amount->getCurrency());
         }
@@ -126,6 +132,10 @@ class Account
 
     public function withdraw(Money $amount): void
     {
+        if (bccomp($amount->getAmount(), '0', 2) <= 0) {
+            throw InvalidAmountException::mustBePositive();
+        }
+
         if (!$amount->getCurrency()->equals($this->currency)) {
             throw CurrencyMismatchException::forOperation($this->currency, $amount->getCurrency());
         }

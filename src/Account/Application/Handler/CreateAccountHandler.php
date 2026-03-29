@@ -3,29 +3,36 @@
 namespace App\Account\Application\Handler;
 
 use App\Account\Application\Command\CreateAccountCommand;
-use App\Account\Domain\Entity\Account;
+use App\Account\Domain\Exception\AccountAlreadyExistsException;
+use App\Account\Domain\Factory\AccountFactory;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
-use Symfony\Component\Uid\Uuid;
 
 class CreateAccountHandler
 {
     public function __construct(
         private AccountRepositoryInterface $accountRepository,
+        private AccountFactory $accountFactory,
     ) {
     }
 
     public function handle(CreateAccountCommand $command): string
     {
-        $accountId = Uuid::v4()->toRfc4122();
-
-        $account = new Account(
-            $accountId,
+        $existingAccount = $this->accountRepository->findByUserIdAndCurrency(
             $command->getUserId(),
-            $command->getCurrency()
+            $command->getCurrency(),
+        );
+
+        if ($existingAccount) {
+            throw AccountAlreadyExistsException::forUserAndCurrency($command->getUserId(), $command->getCurrency());
+        }
+
+        $account = $this->accountFactory->create(
+            $command->getUserId(),
+            $command->getCurrency(),
         );
 
         $this->accountRepository->save($account);
 
-        return $accountId;
+        return $account->getId();
     }
 }

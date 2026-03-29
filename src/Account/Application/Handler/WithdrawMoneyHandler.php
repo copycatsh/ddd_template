@@ -3,6 +3,7 @@
 namespace App\Account\Application\Handler;
 
 use App\Account\Application\Command\WithdrawMoneyCommand;
+use App\Account\Domain\Exception\AccountNotFoundException;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
 
 class WithdrawMoneyHandler
@@ -17,23 +18,11 @@ class WithdrawMoneyHandler
         $account = $this->accountRepository->findById($command->getAccountId());
 
         if (!$account) {
-            throw new \InvalidArgumentException('Account not found');
+            throw AccountNotFoundException::withId($command->getAccountId());
         }
 
-        // Validate currency match
-        if (!$command->getAmount()->getCurrency()->equals($account->getCurrency())) {
-            throw new \InvalidArgumentException('Currency mismatch');
-        }
-
-        // Validate amount is positive
-        if (bccomp($command->getAmount()->getAmount(), '0', 2) <= 0) {
-            throw new \InvalidArgumentException('Amount must be positive');
-        }
-
-        // Withdraw money using domain logic (includes insufficient funds check)
         $account->withdraw($command->getAmount());
 
-        // Save changes
         $this->accountRepository->save($account);
     }
 }
