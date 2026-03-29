@@ -30,6 +30,6 @@ class NotificationHistoryStateProvider implements ProviderInterface
 
         $query = new GetNotificationHistoryQuery($userId, $page, $perPage);
 
-        return ($this->handler)($query);
+        return $this->handler->handle($query);
     }
 }

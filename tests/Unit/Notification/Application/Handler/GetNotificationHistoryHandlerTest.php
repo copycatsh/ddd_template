@@ -67,7 +67,7 @@ final class GetNotificationHistoryHandlerTest extends TestCase
             ->with($userId)
             ->willReturn(2);
 
-        $response = ($this->handler)($query);
+        $response = $this->handler->handle($query);
 
         self::assertInstanceOf(NotificationHistoryResponse::class, $response);
         self::assertSame(2, count($response->items));
@@ -106,7 +106,7 @@ final class GetNotificationHistoryHandlerTest extends TestCase
             ->with($userId)
             ->willReturn(0);
 
-        $response = ($this->handler)($query);
+        $response = $this->handler->handle($query);
 
         self::assertInstanceOf(NotificationHistoryResponse::class, $response);
         self::assertSame(0, count($response->items));
@@ -134,7 +134,7 @@ final class GetNotificationHistoryHandlerTest extends TestCase
             ->with($userId)
             ->willReturn(0);
 
-        $response = ($this->handler)($query);
+        $response = $this->handler->handle($query);
 
         self::assertSame(3, $response->page);
         self::assertSame(10, $response->perPage);

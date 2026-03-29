@@ -77,6 +77,7 @@ Both are fully wired. The event-sourced handlers are named `EventSourced*Handler
 - `AccountNotFoundException` → 404
 - `CurrencyMismatchException` → 400
 - `InsufficientFundsException` → 400
+- `InvalidAmountException` → 400
 
 **Repository Interfaces** (`Domain/Repository/`)
 - `AccountRepositoryInterface` — `save`, `findById`, `findByUserIdAndCurrency`, `findByUserId`
