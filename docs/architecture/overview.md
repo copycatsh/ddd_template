@@ -111,6 +111,12 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 - API Platform providers: `AccountBalance`, `UserAccounts`, `AccountTransactions`
 - DTOs: `CreateAccountDto`, `MoneyOperationDto`, `TransferMoneyDto`
 
+**Projections** (`Infrastructure/Projection/`)
+- `AccountProjectionHandler` — Messenger handler that updates `account_projections` table on `AccountCreated/MoneyDeposited/MoneyWithdrawn` events (sync transport, atomic with event store)
+- `DoctrineAccountProjectionQuery` — DBAL reads from projection table for O(1) account queries
+- Read queries (`GetAccountBalanceHandler`, `GetUserAccountsHandler`) use projection table
+- `CreateAccountHandler` uses projection for duplicate check (UNIQUE index on user_id + currency)
+
 ---
 
 ## Bounded Context: User
@@ -241,4 +247,4 @@ Presentation-layer entry points, grouped by port type (Hexagonal Architecture "d
 
 1. **Transaction events dispatched** — `TransferMoneySaga` dispatches `TransactionCreated/Completed/FailedEvent` via Messenger after transfer operations.
 2. **Account context is ES-only** — CRUD Account entity and handlers were removed in Phase 2.5. All Account operations go through the event store.
-3. **ES query performance** — `findByUserId`/`findByUserIdAndCurrency` scan all events. ES Projections (Phase 4a) will add indexed read-model tables.
+3. **ES read performance** — Account reads use projections (`account_projections` table) for O(1) queries. Projections are updated synchronously on every event via Messenger. Use `app:rebuild-account-projections` to rebuild from event store.

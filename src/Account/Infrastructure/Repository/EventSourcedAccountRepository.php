@@ -4,16 +4,30 @@ namespace App\Account\Infrastructure\Repository;
 
 use App\Account\Domain\Entity\EventSourcedAccount;
 use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
 use App\Shared\Infrastructure\EventStore\EventStoreInterface;
+use Doctrine\DBAL\Connection;
+use Symfony\Component\Messenger\MessageBusInterface;
 
 class EventSourcedAccountRepository implements EventSourcedAccountRepositoryInterface
 {
     public function __construct(
         private EventStoreInterface $eventStore,
+        private MessageBusInterface $messageBus,
+        private Connection $connection,
     ) {
     }
 
+    /**
+     * Save aggregate events to the event store and dispatch them via Messenger.
+     *
+     * Wraps everything in a DBAL transaction so event store writes and projection
+     * updates (triggered by sync Messenger dispatch) are atomic. DoctrineEventStore
+     * uses a nested transaction (Doctrine savepoints) inside this outer transaction.
+     *
+     * TODO: For distributed systems, replace sync dispatch with Outbox Pattern:
+     * store events in an outbox table (same transaction), then publish asynchronously
+     * via a background worker. See: https://microservices.io/patterns/data/transactional-outbox.html
+     */
     public function save(EventSourcedAccount $account): void
     {
         $events = $account->getUncommittedEvents();
@@ -24,11 +38,24 @@ class EventSourcedAccountRepository implements EventSourcedAccountRepositoryInte
 
         $expectedVersion = $account->getVersion() - count($events);
 
-        $this->eventStore->saveEvents(
-            $account->getId(),
-            $events,
-            $expectedVersion
-        );
+        $this->connection->beginTransaction();
+
+        try {
+            $this->eventStore->saveEvents(
+                $account->getId(),
+                $events,
+                $expectedVersion
+            );
+
+            foreach ($events as $event) {
+                $this->messageBus->dispatch($event);
+            }
+
+            $this->connection->commit();
+        } catch (\Throwable $e) {
+            $this->connection->rollBack();
+            throw $e;
+        }
 
         $account->markEventsAsCommitted();
     }
@@ -42,46 +69,5 @@ class EventSourcedAccountRepository implements EventSourcedAccountRepositoryInte
         }
 
         return EventSourcedAccount::reconstitute($id, $events);
-    }
-
-    public function findByUserIdAndCurrency(string $userId, Currency $currency): ?EventSourcedAccount
-    {
-        // For now, we'll implement a simple scan - in production, you'd want indexing
-        $allEvents = $this->eventStore->getAllEvents();
-
-        foreach ($allEvents as $event) {
-            if ($event instanceof \App\Account\Domain\Event\AccountCreatedEvent) {
-                if ($event->getUserId() === $userId && $event->getCurrency()->equals($currency)) {
-                    return $this->findById($event->getAccountId());
-                }
-            }
-        }
-
-        return null;
-    }
-
-    public function findByUserId(string $userId): array
-    {
-        // For now, we'll implement a simple scan - in production, you'd want indexing
-        $allEvents = $this->eventStore->getAllEvents();
-        $accountIds = [];
-
-        foreach ($allEvents as $event) {
-            if ($event instanceof \App\Account\Domain\Event\AccountCreatedEvent) {
-                if ($event->getUserId() === $userId) {
-                    $accountIds[] = $event->getAccountId();
-                }
-            }
-        }
-
-        $accounts = [];
-        foreach ($accountIds as $accountId) {
-            $account = $this->findById($accountId);
-            if ($account) {
-                $accounts[] = $account;
-            }
-        }
-
-        return $accounts;
     }
 }

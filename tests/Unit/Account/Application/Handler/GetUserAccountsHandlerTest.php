@@ -7,41 +7,42 @@ namespace App\Tests\Unit\Account\Application\Handler;
 use App\Account\Application\Handler\GetUserAccountsHandler;
 use App\Account\Application\Query\GetUserAccountsQuery;
 use App\Account\Application\Query\Response\UserAccountsResponse;
-use App\Account\Domain\Entity\EventSourcedAccount;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
+use App\Account\Domain\Port\AccountProjectionData;
+use App\Account\Domain\Port\AccountProjectionQuery;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class GetUserAccountsHandlerTest extends TestCase
 {
-    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountProjectionQuery&MockObject $projectionQuery;
     private GetUserAccountsHandler $handler;
 
     protected function setUp(): void
     {
-        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
-        $this->handler = new GetUserAccountsHandler($this->accountRepository);
+        $this->projectionQuery = $this->createMock(AccountProjectionQuery::class);
+        $this->handler = new GetUserAccountsHandler($this->projectionQuery);
     }
 
     public function testHandleReturnsUserAccounts(): void
     {
-        $account1 = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
-        $account1->markEventsAsCommitted();
-        $account1->deposit(new Money('100.00', Currency::UAH));
-
-        $account2 = EventSourcedAccount::create('acc-2', 'user-1', Currency::USD);
-        $account2->markEventsAsCommitted();
-        $account2->deposit(new Money('50.00', Currency::USD));
-
         $query = new GetUserAccountsQuery('user-1');
 
-        $this->accountRepository
+        $this->projectionQuery
             ->expects($this->once())
             ->method('findByUserId')
             ->with('user-1')
-            ->willReturn([$account1, $account2]);
+            ->willReturn([
+                new AccountProjectionData(
+                    'acc-1', 'user-1', 'UAH', '100.00',
+                    new \DateTimeImmutable('2026-01-01'),
+                    new \DateTimeImmutable('2026-01-01'),
+                ),
+                new AccountProjectionData(
+                    'acc-2', 'user-1', 'USD', '50.00',
+                    new \DateTimeImmutable('2026-01-02'),
+                    new \DateTimeImmutable('2026-01-02'),
+                ),
+            ]);
 
         $response = $this->handler->handle($query);
 
@@ -58,7 +59,7 @@ class GetUserAccountsHandlerTest extends TestCase
     {
         $query = new GetUserAccountsQuery('user-no-accounts');
 
-        $this->accountRepository
+        $this->projectionQuery
             ->expects($this->once())
             ->method('findByUserId')
             ->with('user-no-accounts')
