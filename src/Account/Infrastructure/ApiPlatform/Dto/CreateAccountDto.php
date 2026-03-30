@@ -4,7 +4,7 @@ namespace App\Account\Infrastructure\ApiPlatform\Dto;
 
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
-use App\Account\Domain\Entity\Account;
+use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
 use App\Account\Infrastructure\ApiPlatform\StateProcessor\CreateAccountStateProcessor;
 use Symfony\Component\Validator\Constraints as Assert;
 
@@ -12,7 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Post(
             uriTemplate: '/accounts',
-            output: Account::class,
+            output: AccountResource::class,
             processor: CreateAccountStateProcessor::class
         ),
     ]

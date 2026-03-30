@@ -6,25 +6,22 @@ namespace App\Tests\Unit\Account\Application\Handler;
 
 use App\Account\Application\Command\CreateAccountCommand;
 use App\Account\Application\Handler\CreateAccountHandler;
-use App\Account\Domain\Entity\Account;
+use App\Account\Domain\Entity\EventSourcedAccount;
 use App\Account\Domain\Exception\AccountAlreadyExistsException;
-use App\Account\Domain\Factory\AccountFactory;
-use App\Account\Domain\Repository\AccountRepositoryInterface;
+use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class CreateAccountHandlerTest extends TestCase
 {
-    private AccountRepositoryInterface&MockObject $accountRepository;
-    private AccountFactory $accountFactory;
+    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
     private CreateAccountHandler $handler;
 
     protected function setUp(): void
     {
-        $this->accountRepository = $this->createMock(AccountRepositoryInterface::class);
-        $this->accountFactory = new AccountFactory();
-        $this->handler = new CreateAccountHandler($this->accountRepository, $this->accountFactory);
+        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->handler = new CreateAccountHandler($this->accountRepository);
     }
 
     public function testHandleCreatesAccountAndReturnsId(): void
@@ -40,7 +37,7 @@ class CreateAccountHandlerTest extends TestCase
         $this->accountRepository
             ->expects($this->once())
             ->method('save')
-            ->with($this->isInstanceOf(Account::class));
+            ->with($this->isInstanceOf(EventSourcedAccount::class));
 
         $accountId = $this->handler->handle($command);
 
@@ -55,7 +52,7 @@ class CreateAccountHandlerTest extends TestCase
     {
         $command = new CreateAccountCommand('user-123', Currency::UAH);
 
-        $existingAccount = new Account('existing-id', 'user-123', Currency::UAH);
+        $existingAccount = EventSourcedAccount::create('existing-id', 'user-123', Currency::UAH);
 
         $this->accountRepository
             ->expects($this->once())

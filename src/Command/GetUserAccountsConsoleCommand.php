@@ -18,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class GetUserAccountsConsoleCommand extends Command
 {
     public function __construct(
-        private GetUserAccountsHandler $getUserAccountsHandler,
+        private readonly GetUserAccountsHandler $getUserAccountsHandler,
     ) {
         parent::__construct();
     }

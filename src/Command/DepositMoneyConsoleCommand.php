@@ -20,7 +20,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class DepositMoneyConsoleCommand extends Command
 {
     public function __construct(
-        private DepositMoneyHandler $depositMoneyHandler,
+        private readonly DepositMoneyHandler $depositMoneyHandler,
     ) {
         parent::__construct();
     }

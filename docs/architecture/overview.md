@@ -40,13 +40,12 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 - No negative balances; no negative Money amounts
 - Currency must match for all operations on an account
 
-## Dual Implementation Pattern
+## Implementation Pattern
 
-Each aggregate exists in two forms:
-- **CRUD** (`Account`, `DoctrineAccountRepository`) — standard Doctrine ORM
-- **Event Sourced** (`EventSourcedAccount`, `EventSourcedAccountRepository`) — state reconstructed by replaying events from `event_store` table
-
-Both are fully wired. The event-sourced handlers are named `EventSourced*Handler`. Active API routes use CRUD; ES handlers are wired but not exposed via HTTP.
+- **Account context** — Event Sourced only. `EventSourcedAccount` aggregate with state reconstructed by replaying events from `event_store` table. All API and CLI endpoints use ES handlers.
+- **User context** — Dual implementation: CRUD (`User`, `DoctrineUserRepository`) + ES (`EventSourcedUser`, `EventSourcedUserRepository`). CRUD is active; ES handlers exist but are not exposed via API.
+- **Transaction context** — CRUD only (`Transaction`, `DoctrineTransactionRepository`). Not an ES aggregate.
+- **Notification context** — CRUD only (`NotificationLog`). Log entity, not an aggregate.
 
 ## Event Sourcing
 
@@ -60,8 +59,7 @@ Both are fully wired. The event-sourced handlers are named `EventSourced*Handler
 ## Bounded Context: Account
 
 **Entities** (`Domain/Entity/`)
-- `Account` — CRUD aggregate, Doctrine ORM entity. Holds balance, currency, userId. Enforces deposit/withdraw rules via bcmath.
-- `EventSourcedAccount` — ES aggregate extending `AbstractAggregateRoot`. State rebuilt by replaying domain events.
+- `EventSourcedAccount` — ES aggregate extending `AbstractAggregateRoot`. State rebuilt by replaying domain events. Enforces deposit/withdraw rules via bcmath, positive-amount guards, currency matching, and insufficient funds checks.
 
 **Value Objects** (`Domain/ValueObject/`)
 - `Currency` — backed enum (`UAH`, `USD`) with equality helper
@@ -80,12 +78,9 @@ Both are fully wired. The event-sourced handlers are named `EventSourced*Handler
 - `InvalidAmountException` → 400
 
 **Repository Interfaces** (`Domain/Repository/`)
-- `AccountRepositoryInterface` — `save`, `findById`, `findByUserIdAndCurrency`, `findByUserId`
 - `EventSourcedAccountRepositoryInterface` — `save`, `findById`, `findByUserIdAndCurrency`, `findByUserId`
 
-**Read-Model Ports** (`Domain/Port/`)
-- `AccountReadModelQuery` — `getAccountBalance`, `getUserAccountsSummary` (returns `AccountBalanceData`, `AccountSummaryData`)
-- `AccountBalanceData`, `AccountSummaryData` — port DTOs (domain layer, no Application imports)
+> Note: `findByUserId` and `findByUserIdAndCurrency` currently scan all events (no indexing). ES Projections (Phase 4a) will replace this with indexed read-model queries.
 
 **Commands** (`Application/Command/`)
 - `CreateAccountCommand`, `DepositMoneyCommand`, `WithdrawMoneyCommand`, `TransferMoneyCommand`
@@ -97,25 +92,22 @@ Both are fully wired. The event-sourced handlers are named `EventSourced*Handler
 
 **Handlers** (`Application/Handler/`)
 
-| Handler | Variant |
-|---|---|
-| `CreateAccountHandler` | CRUD |
-| `DepositMoneyHandler` | CRUD |
-| `WithdrawMoneyHandler` | CRUD |
-| `TransferMoneyHandler` | CRUD — delegates to `TransferMoneySaga` |
-| `GetAccountBalanceHandler` | CRUD |
-| `GetUserAccountsHandler` | CRUD |
-| `GetAccountTransactionsHandler` | CRUD |
-| `EventSourcedCreate/Deposit/Withdraw/GetBalance/GetUserAccountsHandler` | ES variants |
+| Handler | Type | Description |
+|---|---|---|
+| `CreateAccountHandler` | Command | Creates ES account, checks uniqueness |
+| `DepositMoneyHandler` | Command | Deposits via ES aggregate |
+| `WithdrawMoneyHandler` | Command | Withdraws via ES aggregate |
+| `GetAccountBalanceHandler` | Query | Reconstitutes from events, returns balance |
+| `GetUserAccountsHandler` | Query | Lists user's accounts from event store |
+| `GetAccountTransactionsHandler` | Query | Reads from Transaction context (DBAL) |
 
 **Sagas** (`Application/Saga/`)
-- `TransferMoneySaga` — orchestrates fund transfer: creates `Transaction` (PENDING) → withdraws → deposits → marks COMPLETED, all inside a Doctrine DB transaction. Rolls back on any failure.
+- `TransferMoneySaga` — orchestrates fund transfer via ES aggregates: creates `Transaction` (PENDING) → withdraws from source → deposits to destination → marks COMPLETED. All saves wrapped in a single DBAL transaction for ACID guarantees. Rolls back on any failure.
 
 **Infrastructure** (`Infrastructure/`)
-- `DoctrineAccountRepository` — implements `AccountRepositoryInterface` (write + find)
-- `DoctrineAccountReadModelQuery` — implements `AccountReadModelQuery` (read-model queries)
-- `EventSourcedAccountRepository` — wraps `EventStoreInterface`; scan-based `findByUserId`
-- API Platform processors: `CreateAccount`, `DepositMoney`, `WithdrawMoney`, `TransferMoney`
+- `EventSourcedAccountRepository` — wraps `EventStoreInterface`; scan-based `findByUserId` (to be replaced by projections in Phase 4a)
+- API Platform resource: `AccountResource` — DTO with `#[ApiResource]` annotations defining all routes
+- API Platform processors: `CreateAccount`, `DepositMoney`, `WithdrawMoney`, `TransferMoney` — call ES handlers, return `AccountResource`
 - API Platform providers: `AccountBalance`, `UserAccounts`, `AccountTransactions`
 - DTOs: `CreateAccountDto`, `MoneyOperationDto`, `TransferMoneyDto`
 
@@ -235,7 +227,7 @@ Anti-corruption layer — read-only cross-context access without depending on Us
 ## Legacy / Non-DDD Code
 
 **`src/Command/`** — Symfony Console commands wrapping DDD handlers (CLI entry points):
-`CreateUser`, `CreateUserEventSourced`, `ChangeUserEmail`, `DepositMoney`, `WithdrawMoney`, `TransferMoney`, `GetAccountBalance`, `GetUserAccounts`, `GetAccountTransactions`, `GetUserInfo`, `TestEventSourcing`
+`CreateUser`, `CreateUserEventSourced`, `ChangeUserEmail`, `DepositMoney`, `WithdrawMoney`, `TransferMoney`, `GetAccountBalance`, `GetUserAccounts`, `GetAccountTransactions`, `GetUserInfo`
 
 **`src/DataFixtures/`** — Doctrine fixtures: `UserFixtures`, `AccountFixtures`, `AppFixtures`
 
@@ -243,4 +235,6 @@ Anti-corruption layer — read-only cross-context access without depending on Us
 
 ## Architectural Notes
 
-1. **Transaction events not dispatched** — `TransactionCreated/Completed/FailedEvent` exist in the domain but `TransferMoneySaga` uses a plain DB transaction. Messenger dispatch is pending (Notification Task 11).
+1. **Transaction events dispatched** — `TransferMoneySaga` dispatches `TransactionCreated/Completed/FailedEvent` via Messenger after transfer operations.
+2. **Account context is ES-only** — CRUD Account entity and handlers were removed in Phase 2.5. All Account operations go through the event store.
+3. **ES query performance** — `findByUserId`/`findByUserIdAndCurrency` scan all events. ES Projections (Phase 4a) will add indexed read-model tables.

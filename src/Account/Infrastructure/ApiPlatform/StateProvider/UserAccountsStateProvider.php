@@ -10,7 +10,7 @@ use App\Account\Application\Query\GetUserAccountsQuery;
 class UserAccountsStateProvider implements ProviderInterface
 {
     public function __construct(
-        private GetUserAccountsHandler $handler,
+        private readonly GetUserAccountsHandler $handler,
     ) {
     }
 

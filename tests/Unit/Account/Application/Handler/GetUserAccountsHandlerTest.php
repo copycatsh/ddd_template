@@ -1,73 +1,73 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Unit\Account\Application\Handler;
 
 use App\Account\Application\Handler\GetUserAccountsHandler;
 use App\Account\Application\Query\GetUserAccountsQuery;
-use App\Account\Application\Query\Response\AccountSummary;
 use App\Account\Application\Query\Response\UserAccountsResponse;
-use App\Account\Domain\Port\AccountReadModelQuery;
-use App\Account\Domain\Port\AccountSummaryData;
+use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\ValueObject\Currency;
+use App\Account\Domain\ValueObject\Money;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class GetUserAccountsHandlerTest extends TestCase
 {
-    private AccountReadModelQuery&MockObject $readModel;
+    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
     private GetUserAccountsHandler $handler;
 
     protected function setUp(): void
     {
-        $this->readModel = $this->createMock(AccountReadModelQuery::class);
-        $this->handler = new GetUserAccountsHandler($this->readModel);
+        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->handler = new GetUserAccountsHandler($this->accountRepository);
     }
 
-    public function testHandleReturnsUserAccountsResponse(): void
+    public function testHandleReturnsUserAccounts(): void
     {
-        $userId = 'user-456';
-        $createdAt = new \DateTimeImmutable('2026-01-15');
+        $account1 = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
+        $account1->markEventsAsCommitted();
+        $account1->deposit(new Money('100.00', Currency::UAH));
 
-        $summaries = [
-            new AccountSummaryData('acc-1', '100.00', 'USD', $createdAt),
-            new AccountSummaryData('acc-2', '200.50', 'EUR', $createdAt),
-        ];
+        $account2 = EventSourcedAccount::create('acc-2', 'user-1', Currency::USD);
+        $account2->markEventsAsCommitted();
+        $account2->deposit(new Money('50.00', Currency::USD));
 
-        $this->readModel
+        $query = new GetUserAccountsQuery('user-1');
+
+        $this->accountRepository
             ->expects($this->once())
-            ->method('getUserAccountsSummary')
-            ->with($userId)
-            ->willReturn($summaries);
+            ->method('findByUserId')
+            ->with('user-1')
+            ->willReturn([$account1, $account2]);
 
-        $result = $this->handler->handle(new GetUserAccountsQuery($userId));
+        $response = $this->handler->handle($query);
 
-        $this->assertInstanceOf(UserAccountsResponse::class, $result);
-        $this->assertSame($userId, $result->userId);
-        $this->assertCount(2, $result->accounts);
-
-        $this->assertInstanceOf(AccountSummary::class, $result->accounts[0]);
-        $this->assertSame('acc-1', $result->accounts[0]->accountId);
-        $this->assertSame('100.00', $result->accounts[0]->balance);
-        $this->assertSame('USD', $result->accounts[0]->currency);
-
-        $this->assertSame('acc-2', $result->accounts[1]->accountId);
-        $this->assertSame('200.50', $result->accounts[1]->balance);
-        $this->assertSame('EUR', $result->accounts[1]->currency);
+        $this->assertInstanceOf(UserAccountsResponse::class, $response);
+        $this->assertEquals('user-1', $response->userId);
+        $this->assertCount(2, $response->accounts);
+        $this->assertEquals('acc-1', $response->accounts[0]->accountId);
+        $this->assertEquals('100.00', $response->accounts[0]->balance);
+        $this->assertEquals('acc-2', $response->accounts[1]->accountId);
+        $this->assertEquals('50.00', $response->accounts[1]->balance);
     }
 
-    public function testHandleReturnsEmptyResponseWhenNoAccounts(): void
+    public function testHandleReturnsEmptyListWhenNoAccounts(): void
     {
-        $userId = 'user-no-accounts';
+        $query = new GetUserAccountsQuery('user-no-accounts');
 
-        $this->readModel
+        $this->accountRepository
             ->expects($this->once())
-            ->method('getUserAccountsSummary')
-            ->with($userId)
+            ->method('findByUserId')
+            ->with('user-no-accounts')
             ->willReturn([]);
 
-        $result = $this->handler->handle(new GetUserAccountsQuery($userId));
+        $response = $this->handler->handle($query);
 
-        $this->assertInstanceOf(UserAccountsResponse::class, $result);
-        $this->assertSame($userId, $result->userId);
-        $this->assertCount(0, $result->accounts);
+        $this->assertInstanceOf(UserAccountsResponse::class, $response);
+        $this->assertEquals('user-no-accounts', $response->userId);
+        $this->assertCount(0, $response->accounts);
     }
 }

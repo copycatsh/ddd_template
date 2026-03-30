@@ -1,28 +1,52 @@
 # TODOS
 
-## Phase 2.5: ES Migration Cleanup
+## Phase 3: Entity Rename
 
-### Align EventSourced handler exceptions to use AccountNotFoundException
+### Rename EventSourcedAccount → Account
 
-**What:** `EventSourcedDepositMoneyHandler` and `EventSourcedWithdrawMoneyHandler` throw generic `\DomainException('Account not found')` instead of `AccountNotFoundException::withId()`.
+**What:** Rename `EventSourcedAccount` to `Account`, `EventSourcedAccountRepositoryInterface` to `AccountRepositoryInterface`, and all related references.
 
-**Why:** Phase 1 aligns the basic (CRUD) handlers to use `AccountNotFoundException`. The ES variants should follow the same pattern for consistent error handling and HTTP status mapping via `DomainExceptionSubscriber`.
+**Why:** After ES migration (Phase 2.5), the `EventSourced` prefix is noise — there's only one implementation. Clean naming improves readability.
 
-**Context:** Will be resolved naturally when CRUD variants are removed and ES handlers become the primary implementation during ES migration (Phase 2.5). Low priority until then.
+**Cons:** Event store table stores `event_type` as FQCN (e.g., `App\Account\Domain\Entity\EventSourcedAccount`). Renaming without a data migration breaks event deserialization for all existing events.
 
-**Depends on:** Phase 2.5 (full ES migration)
+**Context:** Requires a Doctrine migration + PHP script to update `event_type` column values in `event_store` table. Separate focused PR.
+
+**Depends on:** Phase 2.5 (ES migration) — completed
+
+## Phase 4a: ES Projections (fast-tracked)
+
+### Rebuild AccountReadModelQuery as ES Projection
+
+**What:** Create a projection handler that listens to `AccountCreatedEvent` / `MoneyDepositedEvent` / `MoneyWithdrawnEvent` and builds an `account_read_model` table. Rebuild `AccountReadModelQuery` to read from this projection table.
+
+**Why:** ES query handlers currently reconstitute from event store on every read. `findByUserId()` and `findByUserIdAndCurrency()` scan ALL events in the store (`getAllEvents()`). This degrades linearly with total event count.
+
+**Pros:** O(1) reads instead of O(n) event replay. Proper CQRS+ES read-side pattern. Eliminates full table scans on API endpoints.
+
+**Cons:** Adds eventual consistency (projection may lag behind event store). More infrastructure.
+
+**Context:** This is the standard CQRS+ES read-side pattern. The current scan-all-events approach was acceptable for a learning template but projections are the production-grade solution. Immediate next PR after ES migration.
+
+**Depends on:** Phase 2.5 (ES migration) — completed
+
+## Phase 6: Full Saga Pattern
+
+### Saga state machine with compensating transactions
+
+**What:** Evolve `TransferMoneySaga` toward a microservices-ready saga pattern with explicit saga state machine, idempotency keys, and compensation steps as first-class concepts.
+
+**Why:** The current saga uses DBAL transaction wrapping for ACID guarantees (correct for single-DB). In a distributed system with separate databases per bounded context, you need compensating events instead. A full saga pattern has explicit states (PENDING, WITHDRAWING, DEPOSITING, COMPLETING, COMPENSATING, FAILED) and can resume from any state after a crash.
+
+**Pros:** Crash-resilient, resumable, production-grade pattern for distributed systems.
+
+**Cons:** Significant complexity. Currently overkill for a single-DB learning template.
+
+**Context:** Current implementation handles the happy path with DBAL transaction wrapping and documents where compensation would be needed in a distributed system (code comments in TransferMoneySaga). Full saga adds state persistence and resumability.
+
+**Depends on:** Phase 2.5 (ES migration) — completed
 
 ## Phase 2: Domain Refinements
-
-### Introduce UuidGeneratorInterface port
-
-**What:** `AccountFactory` imports `Symfony\Component\Uid\Uuid` directly in the Domain layer. Replace with a `UuidGeneratorInterface` port in Domain and an infrastructure adapter.
-
-**Why:** Hexagonal architecture requires the Domain layer to be framework-agnostic. Before Phase 1, Account Domain had zero Symfony imports. The factory introduced one.
-
-**Context:** Alternatively, move `AccountFactory` to `Application/Factory/`. Either approach removes the Symfony dependency from the Domain layer.
-
-**Depends on:** None
 
 ### Change Money::__construct() to throw DomainException
 
@@ -36,10 +60,10 @@
 
 ### Add $userId empty-string guard
 
-**What:** Neither `AccountFactory::create()` nor `Account::__construct()` validates that `$userId` is non-empty. Empty strings silently create invalid accounts.
+**What:** `EventSourcedAccount::create()` does not validate that `$userId` is non-empty. Empty strings silently create invalid accounts.
 
 **Why:** In a financial domain, creating an account with an empty user ID is a latent data integrity bug. The error only surfaces later when looking up accounts by user.
 
-**Context:** Best approach is adding a guard in `AccountFactory::create()`. Consider introducing a `UserId` value object if the pattern recurs across contexts.
+**Context:** Consider introducing a `UserId` value object if the pattern recurs across contexts.
 
 **Depends on:** None

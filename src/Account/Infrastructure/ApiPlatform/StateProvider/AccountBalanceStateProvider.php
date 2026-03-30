@@ -10,7 +10,7 @@ use App\Account\Application\Query\GetAccountBalanceQuery;
 class AccountBalanceStateProvider implements ProviderInterface
 {
     public function __construct(
-        private GetAccountBalanceHandler $handler,
+        private readonly GetAccountBalanceHandler $handler,
     ) {
     }
 
