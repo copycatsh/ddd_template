@@ -1,24 +1,10 @@
 # TODOS
 
-## Phase 3: Entity Rename
-
-### Rename EventSourcedAccount → Account
-
-**What:** Rename `EventSourcedAccount` to `Account`, `EventSourcedAccountRepositoryInterface` to `AccountRepositoryInterface`, and all related references.
-
-**Why:** After ES migration (Phase 2.5), the `EventSourced` prefix is noise — there's only one implementation. Clean naming improves readability.
-
-**Cons:** Event store table stores `event_type` as FQCN (e.g., `App\Account\Domain\Entity\EventSourcedAccount`). Renaming without a data migration breaks event deserialization for all existing events.
-
-**Context:** Requires a Doctrine migration + PHP script to update `event_type` column values in `event_store` table. Separate focused PR.
-
-**Depends on:** Phase 2.5 (ES migration) — completed
-
 ## Phase 5: Outbox Pattern
 
 ### Transactional Outbox for Event Publishing
 
-**What:** Replace sync Messenger dispatch in `EventSourcedAccountRepository.save()` with the Outbox Pattern: store events in an `outbox` table (same DBAL transaction as event store), then publish asynchronously via a background worker.
+**What:** Replace sync Messenger dispatch in `AccountRepository.save()` with the Outbox Pattern: store events in an `outbox` table (same DBAL transaction as event store), then publish asynchronously via a background worker.
 
 **Why:** Sync dispatch works for single-DB but won't survive a microservices split. The outbox pattern guarantees at-least-once delivery across DB boundaries.
 
@@ -26,7 +12,7 @@
 
 **Cons:** Adds eventual consistency, infrastructure complexity (message broker, outbox worker).
 
-**Context:** Current sync approach is correct for this template's single-DB setup. See TODO comment in `EventSourcedAccountRepository.save()`.
+**Context:** Current sync approach is correct for this template's single-DB setup. See TODO comment in `AccountRepository.save()`.
 
 **Depends on:** Phase 4a (projections) — completed
 
@@ -70,26 +56,28 @@
 
 **Context:** The flat `UI/Console/` grouping was chosen as the first step. Distribution is a follow-up architectural decision.
 
-**Depends on:** UI layer restructuring (this PR)
+**Depends on:** UI layer restructuring — completed
 
-## Phase 2: Domain Refinements
+## Shared Kernel
 
-### Change Money::__construct() to throw DomainException
+### Move Money/Currency VOs to Shared kernel
 
-**What:** `Money::__construct()` throws `\InvalidArgumentException('Amount cannot be negative')` instead of a `DomainException` subclass. This exception bypasses `DomainExceptionSubscriber` and produces a 500 instead of 400.
+**What:** Move `Money` and `Currency` value objects from `Account/Domain/ValueObject/` to `Shared/Domain/ValueObject/`. Update all imports across bounded contexts.
 
-**Why:** Phase 1 removed handler-level validation, making `Money` the first line of defense for negative amounts. Its exception must be in the `DomainException` hierarchy to map to HTTP 400 via the subscriber.
+**Why:** Money and Currency are used across multiple BCs (Account, Transaction). They currently live in Account BC, creating a cross-BC dependency. Shared kernel is the correct location for cross-BC value objects.
 
-**Context:** Either have `Money` throw `InvalidAmountException::mustBePositive()` (adds Account domain dependency to a shared VO) or create a shared `InvalidAmountException` in the Shared kernel. The latter is cleaner if Money is used across bounded contexts.
+**Cons:** Large blast radius — every file importing Money/Currency needs an import update. Also requires moving `CurrencyMismatchException` to Shared (it depends on Currency VO).
+
+**Context:** Deferred from the domain refinements PR to keep scope manageable. When moved, `CurrencyMismatchException` can also move to Shared kernel.
 
 **Depends on:** None
 
-### Add $userId empty-string guard
+### Rename EventSourcedUserRepositoryInterface → UserRepositoryInterface
 
-**What:** `EventSourcedAccount::create()` does not validate that `$userId` is non-empty. Empty strings silently create invalid accounts.
+**What:** Rename `EventSourcedUserRepositoryInterface` to `UserRepositoryInterface` and `EventSourcedUserRepository` to `UserRepository` in the User bounded context. Update `config/services.yaml` wiring.
 
-**Why:** In a financial domain, creating an account with an empty user ID is a latent data integrity bug. The error only surfaces later when looking up accounts by user.
+**Why:** Same naming inconsistency that was fixed in Account BC. The `EventSourced` prefix leaks implementation details into the domain layer.
 
-**Context:** Consider introducing a `UserId` value object if the pattern recurs across contexts.
+**Context:** Follow the same pattern used in the Account BC rename (no migration needed — event_type stores event FQCNs, not aggregate/repository names).
 
 **Depends on:** None

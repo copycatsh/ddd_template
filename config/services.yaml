@@ -29,8 +29,8 @@ services:
             $connection: '@doctrine.dbal.default_connection'
 
     # Event-Sourced repositories
-    App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface:
-        class: App\Account\Infrastructure\Repository\EventSourcedAccountRepository
+    App\Account\Domain\Repository\AccountRepositoryInterface:
+        class: App\Account\Infrastructure\Repository\AccountRepository
         arguments:
             $eventStore: '@App\Shared\Infrastructure\EventStore\EventStoreInterface'
             $messageBus: '@messenger.default_bus'

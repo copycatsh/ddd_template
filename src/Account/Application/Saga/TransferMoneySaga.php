@@ -2,7 +2,7 @@
 
 namespace App\Account\Application\Saga;
 
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Money;
 use App\Transaction\Domain\Entity\Transaction;
 use App\Transaction\Domain\Event\TransactionCompletedEvent;
@@ -17,7 +17,7 @@ use Symfony\Component\Uid\Uuid;
 class TransferMoneySaga
 {
     public function __construct(
-        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
+        private readonly AccountRepositoryInterface $accountRepository,
         private readonly TransactionRepositoryInterface $transactionRepository,
         private readonly Connection $connection,
         private readonly MessageBusInterface $messageBus,

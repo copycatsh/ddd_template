@@ -6,10 +6,10 @@ namespace App\Tests\Unit\Account\Application\Handler;
 
 use App\Account\Application\Command\WithdrawMoneyCommand;
 use App\Account\Application\Handler\WithdrawMoneyHandler;
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\AccountNotFoundException;
 use App\Account\Domain\Exception\InsufficientFundsException;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -17,18 +17,18 @@ use PHPUnit\Framework\TestCase;
 
 class WithdrawMoneyHandlerTest extends TestCase
 {
-    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountRepositoryInterface&MockObject $accountRepository;
     private WithdrawMoneyHandler $handler;
 
     protected function setUp(): void
     {
-        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->accountRepository = $this->createMock(AccountRepositoryInterface::class);
         $this->handler = new WithdrawMoneyHandler($this->accountRepository);
     }
 
     public function testHandleWithdrawsMoneySuccessfully(): void
     {
-        $account = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
+        $account = Account::create('acc-1', 'user-1', Currency::UAH);
         $account->markEventsAsCommitted();
         $account->deposit(new Money('200.00', Currency::UAH));
         $account->markEventsAsCommitted();
@@ -68,7 +68,7 @@ class WithdrawMoneyHandlerTest extends TestCase
 
     public function testHandleThrowsWhenInsufficientFunds(): void
     {
-        $account = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
+        $account = Account::create('acc-1', 'user-1', Currency::UAH);
         $account->markEventsAsCommitted();
         $account->deposit(new Money('50.00', Currency::UAH));
         $account->markEventsAsCommitted();

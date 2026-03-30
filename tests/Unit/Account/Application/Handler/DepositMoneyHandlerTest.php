@@ -6,9 +6,9 @@ namespace App\Tests\Unit\Account\Application\Handler;
 
 use App\Account\Application\Command\DepositMoneyCommand;
 use App\Account\Application\Handler\DepositMoneyHandler;
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\AccountNotFoundException;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -16,18 +16,18 @@ use PHPUnit\Framework\TestCase;
 
 class DepositMoneyHandlerTest extends TestCase
 {
-    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountRepositoryInterface&MockObject $accountRepository;
     private DepositMoneyHandler $handler;
 
     protected function setUp(): void
     {
-        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->accountRepository = $this->createMock(AccountRepositoryInterface::class);
         $this->handler = new DepositMoneyHandler($this->accountRepository);
     }
 
     public function testHandleDepositsMoneySuccessfully(): void
     {
-        $account = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
+        $account = Account::create('acc-1', 'user-1', Currency::UAH);
         $account->markEventsAsCommitted();
 
         $command = new DepositMoneyCommand('acc-1', new Money('100.00', Currency::UAH));

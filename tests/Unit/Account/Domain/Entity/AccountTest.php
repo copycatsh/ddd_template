@@ -2,22 +2,22 @@
 
 namespace App\Tests\Unit\Account\Domain\Entity;
 
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Event\AccountCreatedEvent;
 use App\Account\Domain\Event\MoneyDepositedEvent;
 use App\Account\Domain\Event\MoneyWithdrawnEvent;
 use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
-use App\Account\Domain\Exception\InvalidAmountException;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\Exception\InvalidAmountException;
 use PHPUnit\Framework\TestCase;
 
-class EventSourcedAccountTest extends TestCase
+class AccountTest extends TestCase
 {
     public function testAccountCreation()
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $this->assertEquals(0.00, $account->getBalance()->getAmount());
         $this->assertEquals(Currency::UAH, $account->getBalance()->getCurrency());
         $this->assertEquals('user-id', $account->getUserId());
@@ -25,7 +25,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testDepositRecordsEvent()
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $account->markEventsAsCommitted();
 
         $money = new Money('100.50', Currency::UAH);
@@ -42,7 +42,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testWithdrawRecordsEvent()
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $account->markEventsAsCommitted();
 
         $money1 = new Money('100.50', Currency::UAH);
@@ -67,7 +67,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testAccountCreationRecordsEvent(): void
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $events = $account->getUncommittedEvents();
 
         $this->assertCount(1, $events);
@@ -82,7 +82,7 @@ class EventSourcedAccountTest extends TestCase
             new MoneyDepositedEvent('test-id', new Money('100.00', Currency::UAH), '100.00'),
         ];
 
-        $account = EventSourcedAccount::reconstitute('test-id', $events);
+        $account = Account::reconstitute('test-id', $events);
 
         $this->assertEquals('100.00', $account->getBalance()->getAmount());
         $this->assertEquals(2, $account->getVersion());
@@ -91,7 +91,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testDepositZeroAmountThrowsException(): void
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $account->markEventsAsCommitted();
 
         $this->expectException(InvalidAmountException::class);
@@ -101,7 +101,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testWithdrawZeroAmountThrowsException(): void
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $account->markEventsAsCommitted();
         $account->deposit(new Money('100.00', Currency::UAH));
         $account->markEventsAsCommitted();
@@ -113,7 +113,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testDepositWithDifferentCurrencyThrowsException(): void
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $account->markEventsAsCommitted();
 
         $this->expectException(CurrencyMismatchException::class);
@@ -123,7 +123,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testWithdrawWithDifferentCurrencyThrowsException(): void
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $account->markEventsAsCommitted();
         $account->deposit(new Money('100.00', Currency::UAH));
         $account->markEventsAsCommitted();
@@ -135,7 +135,7 @@ class EventSourcedAccountTest extends TestCase
 
     public function testWithdrawWithInsufficientFundsThrowsException(): void
     {
-        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account = Account::create('test-id', 'user-id', Currency::UAH);
         $account->markEventsAsCommitted();
         $account->deposit(new Money('50.00', Currency::UAH));
         $account->markEventsAsCommitted();
@@ -143,5 +143,21 @@ class EventSourcedAccountTest extends TestCase
         $this->expectException(InsufficientFundsException::class);
 
         $account->withdraw(new Money('100.00', Currency::UAH));
+    }
+
+    public function testCreateWithEmptyUserIdThrowsException(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('User ID cannot be empty');
+
+        Account::create('test-id', '', Currency::UAH);
+    }
+
+    public function testCreateWithWhitespaceUserIdThrowsException(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('User ID cannot be empty');
+
+        Account::create('test-id', '   ', Currency::UAH);
     }
 }

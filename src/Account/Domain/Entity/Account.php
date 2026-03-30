@@ -7,12 +7,12 @@ use App\Account\Domain\Event\MoneyDepositedEvent;
 use App\Account\Domain\Event\MoneyWithdrawnEvent;
 use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
-use App\Account\Domain\Exception\InvalidAmountException;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use App\Shared\Domain\Aggregate\AbstractAggregateRoot;
+use App\Shared\Domain\Exception\InvalidAmountException;
 
-class EventSourcedAccount extends AbstractAggregateRoot
+class Account extends AbstractAggregateRoot
 {
     private string $userId;
     private Currency $currency;
@@ -22,6 +22,10 @@ class EventSourcedAccount extends AbstractAggregateRoot
 
     public static function create(string $accountId, string $userId, Currency $currency): self
     {
+        if ('' === trim($userId)) {
+            throw new \InvalidArgumentException('User ID cannot be empty');
+        }
+
         $account = new self($accountId);
         $account->recordEvent(new AccountCreatedEvent($accountId, $userId, $currency));
 
