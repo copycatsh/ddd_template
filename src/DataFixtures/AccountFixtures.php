@@ -2,7 +2,10 @@
 
 namespace App\DataFixtures;
 
-use App\Account\Domain\Entity\Account;
+use App\Account\Application\Command\CreateAccountCommand;
+use App\Account\Application\Command\DepositMoneyCommand;
+use App\Account\Application\Handler\CreateAccountHandler;
+use App\Account\Application\Handler\DepositMoneyHandler;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use App\User\Domain\Entity\User;
@@ -18,6 +21,12 @@ class AccountFixtures extends Fixture implements DependentFixtureInterface
     public const USER_USD_ACCOUNT_REFERENCE = 'user-usd-account';
     public const ANOTHER_UAH_ACCOUNT_REFERENCE = 'another-uah-account';
 
+    public function __construct(
+        private readonly CreateAccountHandler $createAccountHandler,
+        private readonly DepositMoneyHandler $depositMoneyHandler,
+    ) {
+    }
+
     public function load(ObjectManager $manager): void
     {
         /** @var User $adminUser */
@@ -29,55 +38,28 @@ class AccountFixtures extends Fixture implements DependentFixtureInterface
         /** @var User $anotherUser */
         $anotherUser = $this->getReference(UserFixtures::ANOTHER_USER_REFERENCE);
 
-        // Create admin accounts
-        $adminUahAccount = new Account(
-            'account-550e8400-e29b-41d4-a716-446655440000',
-            $adminUser->getId(),
-            Currency::UAH
-        );
-        $adminUahAccount->deposit(new Money('50000.00', Currency::UAH));
-        $manager->persist($adminUahAccount);
-        $this->addReference(self::ADMIN_UAH_ACCOUNT_REFERENCE, $adminUahAccount);
+        $adminUahId = $this->createAndDeposit($adminUser->getId(), Currency::UAH, '50000.00');
+        $this->addReference(self::ADMIN_UAH_ACCOUNT_REFERENCE, (object) ['id' => $adminUahId]);
 
-        $adminUsdAccount = new Account(
-            'account-550e8400-e29b-41d4-a716-446655440001',
-            $adminUser->getId(),
-            Currency::USD
-        );
-        $adminUsdAccount->deposit(new Money('1000.00', Currency::USD));
-        $manager->persist($adminUsdAccount);
-        $this->addReference(self::ADMIN_USD_ACCOUNT_REFERENCE, $adminUsdAccount);
+        $adminUsdId = $this->createAndDeposit($adminUser->getId(), Currency::USD, '1000.00');
+        $this->addReference(self::ADMIN_USD_ACCOUNT_REFERENCE, (object) ['id' => $adminUsdId]);
 
-        // Create regular user accounts
-        $userUahAccount = new Account(
-            'account-550e8400-e29b-41d4-a716-446655440002',
-            $regularUser->getId(),
-            Currency::UAH
-        );
-        $userUahAccount->deposit(new Money('10000.00', Currency::UAH));
-        $manager->persist($userUahAccount);
-        $this->addReference(self::USER_UAH_ACCOUNT_REFERENCE, $userUahAccount);
+        $userUahId = $this->createAndDeposit($regularUser->getId(), Currency::UAH, '10000.00');
+        $this->addReference(self::USER_UAH_ACCOUNT_REFERENCE, (object) ['id' => $userUahId]);
 
-        $userUsdAccount = new Account(
-            'account-550e8400-e29b-41d4-a716-446655440003',
-            $regularUser->getId(),
-            Currency::USD
-        );
-        $userUsdAccount->deposit(new Money('250.00', Currency::USD));
-        $manager->persist($userUsdAccount);
-        $this->addReference(self::USER_USD_ACCOUNT_REFERENCE, $userUsdAccount);
+        $userUsdId = $this->createAndDeposit($regularUser->getId(), Currency::USD, '250.00');
+        $this->addReference(self::USER_USD_ACCOUNT_REFERENCE, (object) ['id' => $userUsdId]);
 
-        // Create another user account
-        $anotherUahAccount = new Account(
-            'account-550e8400-e29b-41d4-a716-446655440004',
-            $anotherUser->getId(),
-            Currency::UAH
-        );
-        $anotherUahAccount->deposit(new Money('5000.00', Currency::UAH));
-        $manager->persist($anotherUahAccount);
-        $this->addReference(self::ANOTHER_UAH_ACCOUNT_REFERENCE, $anotherUahAccount);
+        $anotherUahId = $this->createAndDeposit($anotherUser->getId(), Currency::UAH, '5000.00');
+        $this->addReference(self::ANOTHER_UAH_ACCOUNT_REFERENCE, (object) ['id' => $anotherUahId]);
+    }
 
-        $manager->flush();
+    private function createAndDeposit(string $userId, Currency $currency, string $amount): string
+    {
+        $accountId = $this->createAccountHandler->handle(new CreateAccountCommand($userId, $currency));
+        $this->depositMoneyHandler->handle(new DepositMoneyCommand($accountId, new Money($amount, $currency)));
+
+        return $accountId;
     }
 
     public function getDependencies(): array

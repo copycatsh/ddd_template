@@ -2,9 +2,8 @@
 
 namespace App\Command;
 
-use App\Account\Application\Command\TransferMoneyCommand;
-use App\Account\Application\Handler\TransferMoneyHandler;
-use App\Account\Domain\Repository\AccountRepositoryInterface;
+use App\Account\Application\Saga\TransferMoneySaga;
+use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -21,8 +20,8 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class TransferMoneyConsoleCommand extends Command
 {
     public function __construct(
-        private readonly TransferMoneyHandler $handler,
-        private readonly AccountRepositoryInterface $accountRepository,
+        private readonly TransferMoneySaga $saga,
+        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
     ) {
         parent::__construct();
     }
@@ -46,7 +45,6 @@ class TransferMoneyConsoleCommand extends Command
         $currency = $input->getArgument('currency');
 
         try {
-            // Show accounts before transfer
             $fromAccount = $this->accountRepository->findById($fromAccountId);
             $toAccount = $this->accountRepository->findById($toAccountId);
 
@@ -65,16 +63,12 @@ class TransferMoneyConsoleCommand extends Command
                 ]
             );
 
-            // Execute transfer
-            $command = new TransferMoneyCommand(
+            $transactionId = $this->saga->execute(
                 $fromAccountId,
                 $toAccountId,
                 new Money($amount, Currency::from($currency))
             );
 
-            $transactionId = $this->handler->handle($command);
-
-            // Show accounts after transfer
             $fromAccount = $this->accountRepository->findById($fromAccountId);
             $toAccount = $this->accountRepository->findById($toAccountId);
 

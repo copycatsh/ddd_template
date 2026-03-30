@@ -20,7 +20,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class WithdrawMoneyConsoleCommand extends Command
 {
     public function __construct(
-        private WithdrawMoneyHandler $withdrawMoneyHandler,
+        private readonly WithdrawMoneyHandler $withdrawMoneyHandler,
     ) {
         parent::__construct();
     }

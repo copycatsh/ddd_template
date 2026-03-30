@@ -5,32 +5,28 @@ namespace App\Account\Application\Handler;
 use App\Account\Application\Query\GetUserAccountsQuery;
 use App\Account\Application\Query\Response\AccountSummary;
 use App\Account\Application\Query\Response\UserAccountsResponse;
-use App\Account\Domain\Port\AccountReadModelQuery;
+use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 
 class GetUserAccountsHandler
 {
     public function __construct(
-        private AccountReadModelQuery $accountReadModel,
+        private EventSourcedAccountRepositoryInterface $accountRepository,
     ) {
     }
 
     public function handle(GetUserAccountsQuery $query): UserAccountsResponse
     {
-        $summaries = $this->accountReadModel->getUserAccountsSummary($query->getUserId());
+        $accounts = $this->accountRepository->findByUserId($query->getUserId());
 
-        $accounts = array_map(
-            fn ($data) => new AccountSummary(
-                $data->accountId,
-                $data->balance,
-                $data->currency,
-                $data->createdAt,
-            ),
-            $summaries
-        );
+        $summaries = array_map(function ($account) {
+            return new AccountSummary(
+                $account->getId(),
+                $account->getBalance()->getAmount(),
+                $account->getBalance()->getCurrency()->value,
+                $account->getCreatedAt()
+            );
+        }, $accounts);
 
-        return new UserAccountsResponse(
-            $query->getUserId(),
-            $accounts
-        );
+        return new UserAccountsResponse($query->getUserId(), $summaries);
     }
 }

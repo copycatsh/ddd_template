@@ -7,6 +7,7 @@ use App\Account\Domain\Event\MoneyDepositedEvent;
 use App\Account\Domain\Event\MoneyWithdrawnEvent;
 use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Account\Domain\Exception\InvalidAmountException;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use App\Shared\Domain\Aggregate\AbstractAggregateRoot;
@@ -29,6 +30,10 @@ class EventSourcedAccount extends AbstractAggregateRoot
 
     public function deposit(Money $amount): void
     {
+        if (bccomp($amount->getAmount(), '0', 2) <= 0) {
+            throw InvalidAmountException::mustBePositive();
+        }
+
         if (!$amount->getCurrency()->equals($this->currency)) {
             throw CurrencyMismatchException::forOperation($this->currency, $amount->getCurrency());
         }
@@ -39,6 +44,10 @@ class EventSourcedAccount extends AbstractAggregateRoot
 
     public function withdraw(Money $amount): void
     {
+        if (bccomp($amount->getAmount(), '0', 2) <= 0) {
+            throw InvalidAmountException::mustBePositive();
+        }
+
         if (!$amount->getCurrency()->equals($this->currency)) {
             throw CurrencyMismatchException::forOperation($this->currency, $amount->getCurrency());
         }

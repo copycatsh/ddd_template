@@ -18,7 +18,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class GetAccountBalanceConsoleCommand extends Command
 {
     public function __construct(
-        private GetAccountBalanceHandler $getAccountBalanceHandler,
+        private readonly GetAccountBalanceHandler $getAccountBalanceHandler,
     ) {
         parent::__construct();
     }

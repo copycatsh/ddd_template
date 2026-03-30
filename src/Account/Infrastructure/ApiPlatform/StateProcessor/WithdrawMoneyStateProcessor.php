@@ -6,18 +6,19 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Account\Application\Command\WithdrawMoneyCommand;
 use App\Account\Application\Handler\WithdrawMoneyHandler;
-use App\Account\Domain\Repository\AccountRepositoryInterface;
+use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
+use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
 
 class WithdrawMoneyStateProcessor implements ProcessorInterface
 {
     public function __construct(
-        private WithdrawMoneyHandler $handler,
-        private AccountRepositoryInterface $accountRepository,
+        private readonly WithdrawMoneyHandler $handler,
+        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
     ) {
     }
 
-    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): mixed
+    public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AccountResource
     {
         if (!$data instanceof MoneyOperationDto) {
             throw new \InvalidArgumentException('Expected MoneyOperationDto');
@@ -28,13 +29,14 @@ class WithdrawMoneyStateProcessor implements ProcessorInterface
             throw new \InvalidArgumentException('Account ID is required');
         }
 
-        $command = new WithdrawMoneyCommand(
-            $accountId,
-            $data->getMoney()
-        );
+        $this->handler->handle(new WithdrawMoneyCommand($accountId, $data->getMoney()));
 
-        $this->handler->handle($command);
+        $account = $this->accountRepository->findById($accountId);
 
-        return $this->accountRepository->findById($accountId);
+        if (!$account) {
+            throw new \RuntimeException(sprintf('Account %s not found after withdrawal', $accountId));
+        }
+
+        return AccountResource::fromEventSourcedAccount($account);
     }
 }

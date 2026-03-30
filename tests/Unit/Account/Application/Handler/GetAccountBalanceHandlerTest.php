@@ -1,60 +1,64 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Tests\Unit\Account\Application\Handler;
 
 use App\Account\Application\Handler\GetAccountBalanceHandler;
 use App\Account\Application\Query\GetAccountBalanceQuery;
 use App\Account\Application\Query\Response\AccountBalanceResponse;
-use App\Account\Domain\Port\AccountBalanceData;
-use App\Account\Domain\Port\AccountReadModelQuery;
+use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\ValueObject\Currency;
+use App\Account\Domain\ValueObject\Money;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class GetAccountBalanceHandlerTest extends TestCase
 {
-    private AccountReadModelQuery&MockObject $readModel;
+    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
     private GetAccountBalanceHandler $handler;
 
     protected function setUp(): void
     {
-        $this->readModel = $this->createMock(AccountReadModelQuery::class);
-        $this->handler = new GetAccountBalanceHandler($this->readModel);
+        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->handler = new GetAccountBalanceHandler($this->accountRepository);
     }
 
-    public function testHandleReturnsBalanceResponseWhenAccountExists(): void
+    public function testHandleReturnsBalanceResponse(): void
     {
-        $accountId = 'acc-123';
-        $lastUpdated = new \DateTimeImmutable('2026-03-09 10:00:00');
+        $account = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
+        $account->markEventsAsCommitted();
+        $account->deposit(new Money('250.00', Currency::UAH));
 
-        $data = new AccountBalanceData($accountId, '150.00', 'USD', $lastUpdated);
+        $query = new GetAccountBalanceQuery('acc-1');
 
-        $this->readModel
+        $this->accountRepository
             ->expects($this->once())
-            ->method('getAccountBalance')
-            ->with($accountId)
-            ->willReturn($data);
+            ->method('findById')
+            ->with('acc-1')
+            ->willReturn($account);
 
-        $result = $this->handler->handle(new GetAccountBalanceQuery($accountId));
+        $response = $this->handler->handle($query);
 
-        $this->assertInstanceOf(AccountBalanceResponse::class, $result);
-        $this->assertSame($accountId, $result->accountId);
-        $this->assertSame('150.00', $result->balance);
-        $this->assertSame('USD', $result->currency);
-        $this->assertSame($lastUpdated, $result->lastUpdated);
+        $this->assertInstanceOf(AccountBalanceResponse::class, $response);
+        $this->assertEquals('acc-1', $response->accountId);
+        $this->assertEquals('250.00', $response->balance);
+        $this->assertEquals('UAH', $response->currency);
     }
 
     public function testHandleReturnsNullWhenAccountNotFound(): void
     {
-        $accountId = 'nonexistent';
+        $query = new GetAccountBalanceQuery('nonexistent');
 
-        $this->readModel
+        $this->accountRepository
             ->expects($this->once())
-            ->method('getAccountBalance')
-            ->with($accountId)
+            ->method('findById')
+            ->with('nonexistent')
             ->willReturn(null);
 
-        $result = $this->handler->handle(new GetAccountBalanceQuery($accountId));
+        $response = $this->handler->handle($query);
 
-        $this->assertNull($result);
+        $this->assertNull($response);
     }
 }

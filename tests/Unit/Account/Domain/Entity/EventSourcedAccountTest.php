@@ -6,6 +6,9 @@ use App\Account\Domain\Entity\EventSourcedAccount;
 use App\Account\Domain\Event\AccountCreatedEvent;
 use App\Account\Domain\Event\MoneyDepositedEvent;
 use App\Account\Domain\Event\MoneyWithdrawnEvent;
+use App\Account\Domain\Exception\CurrencyMismatchException;
+use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Account\Domain\Exception\InvalidAmountException;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use PHPUnit\Framework\TestCase;
@@ -84,5 +87,61 @@ class EventSourcedAccountTest extends TestCase
         $this->assertEquals('100.00', $account->getBalance()->getAmount());
         $this->assertEquals(2, $account->getVersion());
         $this->assertCount(0, $account->getUncommittedEvents()); // reconstitute не створює uncommitted events
+    }
+
+    public function testDepositZeroAmountThrowsException(): void
+    {
+        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account->markEventsAsCommitted();
+
+        $this->expectException(InvalidAmountException::class);
+
+        $account->deposit(new Money('0.00', Currency::UAH));
+    }
+
+    public function testWithdrawZeroAmountThrowsException(): void
+    {
+        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account->markEventsAsCommitted();
+        $account->deposit(new Money('100.00', Currency::UAH));
+        $account->markEventsAsCommitted();
+
+        $this->expectException(InvalidAmountException::class);
+
+        $account->withdraw(new Money('0.00', Currency::UAH));
+    }
+
+    public function testDepositWithDifferentCurrencyThrowsException(): void
+    {
+        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account->markEventsAsCommitted();
+
+        $this->expectException(CurrencyMismatchException::class);
+
+        $account->deposit(new Money('100.00', Currency::USD));
+    }
+
+    public function testWithdrawWithDifferentCurrencyThrowsException(): void
+    {
+        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account->markEventsAsCommitted();
+        $account->deposit(new Money('100.00', Currency::UAH));
+        $account->markEventsAsCommitted();
+
+        $this->expectException(CurrencyMismatchException::class);
+
+        $account->withdraw(new Money('100.00', Currency::USD));
+    }
+
+    public function testWithdrawWithInsufficientFundsThrowsException(): void
+    {
+        $account = EventSourcedAccount::create('test-id', 'user-id', Currency::UAH);
+        $account->markEventsAsCommitted();
+        $account->deposit(new Money('50.00', Currency::UAH));
+        $account->markEventsAsCommitted();
+
+        $this->expectException(InsufficientFundsException::class);
+
+        $account->withdraw(new Money('100.00', Currency::UAH));
     }
 }

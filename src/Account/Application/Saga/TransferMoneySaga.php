@@ -2,7 +2,7 @@
 
 namespace App\Account\Application\Saga;
 
-use App\Account\Domain\Repository\AccountRepositoryInterface;
+use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Money;
 use App\Transaction\Domain\Entity\Transaction;
 use App\Transaction\Domain\Event\TransactionCompletedEvent;
@@ -10,24 +10,33 @@ use App\Transaction\Domain\Event\TransactionCreatedEvent;
 use App\Transaction\Domain\Event\TransactionFailedEvent;
 use App\Transaction\Domain\Repository\TransactionRepositoryInterface;
 use App\Transaction\Domain\ValueObject\TransactionType;
-use Doctrine\ORM\EntityManagerInterface;
+use Doctrine\DBAL\Connection;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Uid\Uuid;
 
 class TransferMoneySaga
 {
     public function __construct(
-        private readonly AccountRepositoryInterface $accountRepository,
+        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
         private readonly TransactionRepositoryInterface $transactionRepository,
-        private readonly EntityManagerInterface $entityManager,
+        private readonly Connection $connection,
         private readonly MessageBusInterface $messageBus,
     ) {
     }
 
     /**
-     * Transfer money between two accounts.
+     * Transfer money between two accounts using Event Sourcing.
      *
-     * Uses DB Transaction for ACID guarantees
+     * Uses DBAL transaction to wrap all saves (event store + transaction record)
+     * for ACID guarantees. Since both the EventStore and TransactionRepository
+     * share the same database connection, a single DBAL transaction ensures
+     * all-or-nothing semantics.
+     *
+     * NOTE: In a distributed system with separate databases per bounded context,
+     * you would use compensating events instead of a shared DB transaction:
+     * - If deposit fails after successful withdraw, record a compensating
+     *   deposit event on the source account to restore funds.
+     * - See Phase 6 TODO for full saga state machine pattern.
      *
      * @throws \DomainException  if validation failed
      * @throws \RuntimeException if the operation failed
@@ -37,12 +46,10 @@ class TransferMoneySaga
         string $toAccountId,
         Money $amount,
     ): string {
-        // Validation: you cannot translate for yourself
         if ($fromAccountId === $toAccountId) {
             throw new \DomainException('Cannot transfer to the same account');
         }
 
-        // Download both accounts
         $fromAccount = $this->accountRepository->findById($fromAccountId);
         $toAccount = $this->accountRepository->findById($toAccountId);
 
@@ -54,22 +61,19 @@ class TransferMoneySaga
             throw new \DomainException("Destination account {$toAccountId} not found");
         }
 
-        // Validation: same currency between accounts
         if (!$fromAccount->getCurrency()->equals($toAccount->getCurrency())) {
             throw new \DomainException('Cannot transfer between different currencies');
         }
 
-        // Validation: the currency amount matches the currency of the account
         if (!$amount->getCurrency()->equals($fromAccount->getCurrency())) {
             throw new \DomainException('Amount currency must match account currency');
         }
 
-        // Start DB transaction - all or nothing (ACID)
-        $this->entityManager->beginTransaction();
+        $transactionId = Uuid::v4()->toRfc4122();
+
+        $this->connection->beginTransaction();
 
         try {
-            // Step 1: Create a transaction record (PENDING)
-            $transactionId = Uuid::v4()->toRfc4122();
             $transaction = new Transaction(
                 $transactionId,
                 $fromAccountId,
@@ -79,6 +83,17 @@ class TransferMoneySaga
             );
             $this->transactionRepository->save($transaction);
 
+            $fromAccount->withdraw($amount);
+            $this->accountRepository->save($fromAccount);
+
+            $toAccount->deposit($amount);
+            $this->accountRepository->save($toAccount);
+
+            $transaction->complete();
+            $this->transactionRepository->save($transaction);
+
+            $this->connection->commit();
+
             $this->messageBus->dispatch(new TransactionCreatedEvent(
                 $transactionId,
                 $fromAccountId,
@@ -87,21 +102,6 @@ class TransferMoneySaga
                 $amount->getCurrency()->value,
             ));
 
-            // Step 2: Withdraw з source account
-            $fromAccount->withdraw($amount);
-            $this->accountRepository->save($fromAccount);
-
-            // Step 3: Deposit на destination account
-            $toAccount->deposit($amount);
-            $this->accountRepository->save($toAccount);
-
-            // Step 4: Complete transaction
-            $transaction->complete();
-            $this->transactionRepository->save($transaction);
-
-            // Commit - apply all changes together
-            $this->entityManager->commit();
-
             $this->messageBus->dispatch(new TransactionCompletedEvent(
                 $transactionId,
                 $fromAccountId,
@@ -109,18 +109,26 @@ class TransferMoneySaga
 
             return $transactionId;
         } catch (\Exception $e) {
-            // Rollback - automatically roll back ALL changes
-            $this->entityManager->rollback();
+            try {
+                $this->connection->rollBack();
+            } catch (\Throwable) {
+                // Rollback failure must not hide the original exception
+            }
 
-            if (isset($transactionId)) {
+            try {
                 $this->messageBus->dispatch(new TransactionFailedEvent(
                     $transactionId,
                     $fromAccountId,
                     $e->getMessage(),
                 ));
+            } catch (\Throwable) {
+                // Dispatch failure must not hide the original exception
             }
 
-            // Re-throw with context
+            if ($e instanceof \DomainException) {
+                throw $e;
+            }
+
             throw new \RuntimeException("Transfer failed: {$e->getMessage()}", 0, $e);
         }
     }
