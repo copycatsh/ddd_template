@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Command;
+namespace App\UI\Console;
 
 use App\User\Domain\Repository\EventSourcedUserRepositoryInterface;
 use Symfony\Component\Console\Attribute\AsCommand;

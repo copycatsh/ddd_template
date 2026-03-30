@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Command;
+namespace App\UI\Console;
 
 use App\Account\Application\Handler\GetAccountBalanceHandler;
 use App\Account\Application\Query\GetAccountBalanceQuery;
