@@ -6,8 +6,8 @@ namespace App\Tests\Unit\Account\Infrastructure\ApiPlatform\StateProcessor;
 
 use ApiPlatform\Metadata\Post;
 use App\Account\Application\Handler\CreateAccountHandler;
-use App\Account\Domain\Entity\EventSourcedAccount;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Entity\Account;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Infrastructure\ApiPlatform\Dto\CreateAccountDto;
 use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
@@ -18,13 +18,13 @@ use PHPUnit\Framework\TestCase;
 class CreateAccountStateProcessorTest extends TestCase
 {
     private CreateAccountHandler&MockObject $handler;
-    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountRepositoryInterface&MockObject $accountRepository;
     private CreateAccountStateProcessor $processor;
 
     protected function setUp(): void
     {
         $this->handler = $this->createMock(CreateAccountHandler::class);
-        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->accountRepository = $this->createMock(AccountRepositoryInterface::class);
         $this->processor = new CreateAccountStateProcessor($this->handler, $this->accountRepository);
     }
 
@@ -34,7 +34,7 @@ class CreateAccountStateProcessorTest extends TestCase
         $dto->userId = 'user-1';
         $dto->currency = 'UAH';
 
-        $account = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
+        $account = Account::create('acc-1', 'user-1', Currency::UAH);
 
         $this->handler
             ->expects($this->once())

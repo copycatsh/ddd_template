@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Account\Application\Saga;
 
 use App\Account\Application\Saga\TransferMoneySaga;
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\InsufficientFundsException;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use App\Transaction\Domain\Repository\TransactionRepositoryInterface;
@@ -19,7 +19,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 
 class TransferMoneySagaTest extends TestCase
 {
-    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountRepositoryInterface&MockObject $accountRepository;
     private TransactionRepositoryInterface&MockObject $transactionRepository;
     private Connection&MockObject $connection;
     private MessageBusInterface&MockObject $messageBus;
@@ -27,7 +27,7 @@ class TransferMoneySagaTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->accountRepository = $this->createMock(AccountRepositoryInterface::class);
         $this->transactionRepository = $this->createMock(TransactionRepositoryInterface::class);
         $this->connection = $this->createMock(Connection::class);
         $this->messageBus = $this->createMock(MessageBusInterface::class);
@@ -43,9 +43,9 @@ class TransferMoneySagaTest extends TestCase
         );
     }
 
-    private function createAccountWithBalance(string $id, string $userId, Currency $currency, string $balance): EventSourcedAccount
+    private function createAccountWithBalance(string $id, string $userId, Currency $currency, string $balance): Account
     {
-        $account = EventSourcedAccount::create($id, $userId, $currency);
+        $account = Account::create($id, $userId, $currency);
         $account->markEventsAsCommitted();
         if (bccomp($balance, '0', 2) > 0) {
             $account->deposit(new Money($balance, $currency));

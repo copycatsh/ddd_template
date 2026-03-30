@@ -6,8 +6,9 @@ use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Exception\AccountNotFoundException;
 use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
-use App\Account\Domain\Exception\InvalidAmountException;
 use App\Shared\Domain\Exception\DomainException;
+use App\Shared\Domain\Exception\InvalidAmountException;
+use App\Shared\Domain\Exception\NegativeBalanceException;
 use App\User\Domain\Exception\InvalidCredentialsException;
 use App\User\Domain\Exception\UserAlreadyExistsException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
@@ -44,7 +45,8 @@ class DomainExceptionSubscriber implements EventSubscriberInterface
 
             $exception instanceof InsufficientFundsException,
             $exception instanceof CurrencyMismatchException,
-            $exception instanceof InvalidAmountException => new JsonResponse(
+            $exception instanceof InvalidAmountException,
+            $exception instanceof NegativeBalanceException => new JsonResponse(
                 ['error' => $exception->getMessage()],
                 Response::HTTP_BAD_REQUEST
             ),

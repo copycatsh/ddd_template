@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace App\Tests\Unit\Account\Infrastructure\Repository;
 
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
-use App\Account\Infrastructure\Repository\EventSourcedAccountRepository;
+use App\Account\Infrastructure\Repository\AccountRepository;
 use App\Shared\Infrastructure\EventStore\EventStoreInterface;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -17,13 +17,13 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-#[CoversClass(EventSourcedAccountRepository::class)]
-final class EventSourcedAccountRepositoryTest extends TestCase
+#[CoversClass(AccountRepository::class)]
+final class AccountRepositoryTest extends TestCase
 {
     private EventStoreInterface&MockObject $eventStore;
     private MessageBusInterface&MockObject $messageBus;
     private Connection&MockObject $connection;
-    private EventSourcedAccountRepository $repository;
+    private AccountRepository $repository;
 
     protected function setUp(): void
     {
@@ -31,7 +31,7 @@ final class EventSourcedAccountRepositoryTest extends TestCase
         $this->messageBus = $this->createMock(MessageBusInterface::class);
         $this->connection = $this->createMock(Connection::class);
 
-        $this->repository = new EventSourcedAccountRepository(
+        $this->repository = new AccountRepository(
             $this->eventStore,
             $this->messageBus,
             $this->connection,
@@ -45,7 +45,7 @@ final class EventSourcedAccountRepositoryTest extends TestCase
         $userId = 'user-456';
         $currency = Currency::UAH;
 
-        $account = EventSourcedAccount::create($accountId, $userId, $currency);
+        $account = Account::create($accountId, $userId, $currency);
         $account->deposit(new Money('100.00', $currency));
 
         $events = $account->getUncommittedEvents();
@@ -85,7 +85,7 @@ final class EventSourcedAccountRepositoryTest extends TestCase
         $userId = 'user-456';
         $currency = Currency::UAH;
 
-        $account = EventSourcedAccount::create($accountId, $userId, $currency);
+        $account = Account::create($accountId, $userId, $currency);
         $events = $account->getUncommittedEvents();
 
         $this->eventStore
@@ -125,7 +125,7 @@ final class EventSourcedAccountRepositoryTest extends TestCase
         $userId = 'user-456';
         $currency = Currency::UAH;
 
-        $account = EventSourcedAccount::create($accountId, $userId, $currency);
+        $account = Account::create($accountId, $userId, $currency);
         $account->markEventsAsCommitted();
 
         self::assertEmpty($account->getUncommittedEvents());
@@ -160,7 +160,7 @@ final class EventSourcedAccountRepositoryTest extends TestCase
         $userId = 'user-456';
         $currency = Currency::UAH;
 
-        $account = EventSourcedAccount::create($accountId, $userId, $currency);
+        $account = Account::create($accountId, $userId, $currency);
         $events = $account->getUncommittedEvents();
 
         $this->eventStore

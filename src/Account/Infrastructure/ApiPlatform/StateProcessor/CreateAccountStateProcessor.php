@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Account\Application\Command\CreateAccountCommand;
 use App\Account\Application\Handler\CreateAccountHandler;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Infrastructure\ApiPlatform\Dto\CreateAccountDto;
 use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
@@ -15,7 +15,7 @@ class CreateAccountStateProcessor implements ProcessorInterface
 {
     public function __construct(
         private readonly CreateAccountHandler $handler,
-        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
+        private readonly AccountRepositoryInterface $accountRepository,
     ) {
     }
 
@@ -35,6 +35,6 @@ class CreateAccountStateProcessor implements ProcessorInterface
             throw new \RuntimeException(sprintf('Account %s not found after creation', $accountId));
         }
 
-        return AccountResource::fromEventSourcedAccount($account);
+        return AccountResource::fromAccount($account);
     }
 }

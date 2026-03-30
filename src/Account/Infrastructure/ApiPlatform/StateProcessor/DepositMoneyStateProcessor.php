@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Account\Application\Command\DepositMoneyCommand;
 use App\Account\Application\Handler\DepositMoneyHandler;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
 use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
 
@@ -14,7 +14,7 @@ class DepositMoneyStateProcessor implements ProcessorInterface
 {
     public function __construct(
         private readonly DepositMoneyHandler $handler,
-        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
+        private readonly AccountRepositoryInterface $accountRepository,
     ) {
     }
 
@@ -37,6 +37,6 @@ class DepositMoneyStateProcessor implements ProcessorInterface
             throw new \RuntimeException(sprintf('Account %s not found after deposit', $accountId));
         }
 
-        return AccountResource::fromEventSourcedAccount($account);
+        return AccountResource::fromAccount($account);
     }
 }

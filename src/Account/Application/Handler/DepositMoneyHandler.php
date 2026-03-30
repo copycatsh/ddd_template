@@ -4,12 +4,12 @@ namespace App\Account\Application\Handler;
 
 use App\Account\Application\Command\DepositMoneyCommand;
 use App\Account\Domain\Exception\AccountNotFoundException;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 
 class DepositMoneyHandler
 {
     public function __construct(
-        private EventSourcedAccountRepositoryInterface $accountRepository,
+        private AccountRepositoryInterface $accountRepository,
     ) {
     }
 

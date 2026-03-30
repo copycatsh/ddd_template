@@ -2,8 +2,11 @@
 
 namespace App\Tests\Unit\Account\Domain\ValueObject;
 
+use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\Exception\InvalidAmountException;
+use App\Shared\Domain\Exception\NegativeBalanceException;
 use PHPUnit\Framework\TestCase;
 
 class MoneyTest extends TestCase
@@ -25,7 +28,7 @@ class MoneyTest extends TestCase
 
     public function testNegativeAmountThrowsException(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
+        $this->expectException(InvalidAmountException::class);
         $this->expectExceptionMessage('Amount cannot be negative');
 
         new Money('-10.00', Currency::UAH);
@@ -55,8 +58,7 @@ class MoneyTest extends TestCase
 
     public function testAdditionWithDifferentCurrenciesThrowsException(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Currency mismatch');
+        $this->expectException(CurrencyMismatchException::class);
 
         $money1 = new Money('100.00', Currency::UAH);
         $money2 = new Money('50.00', Currency::USD);
@@ -66,8 +68,7 @@ class MoneyTest extends TestCase
 
     public function testSubtractionWithDifferentCurrenciesThrowsException(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Currency mismatch');
+        $this->expectException(CurrencyMismatchException::class);
 
         $money1 = new Money('100.00', Currency::UAH);
         $money2 = new Money('50.00', Currency::USD);
@@ -77,8 +78,7 @@ class MoneyTest extends TestCase
 
     public function testSubtractionResultingInNegativeThrowsException(): void
     {
-        $this->expectException(\InvalidArgumentException::class);
-        $this->expectExceptionMessage('Result cannot be negative');
+        $this->expectException(NegativeBalanceException::class);
 
         $money1 = new Money('50.00', Currency::UAH);
         $money2 = new Money('100.00', Currency::UAH);
@@ -122,5 +122,29 @@ class MoneyTest extends TestCase
         // Result should be a new instance
         $this->assertEquals('150.00', $result->getAmount());
         $this->assertNotSame($original, $result);
+    }
+
+    public function testInvalidAmountExceptionNegativeAmountFactory(): void
+    {
+        $exception = InvalidAmountException::negativeAmount();
+
+        $this->assertInstanceOf(InvalidAmountException::class, $exception);
+        $this->assertEquals('Amount cannot be negative', $exception->getMessage());
+    }
+
+    public function testInvalidAmountExceptionMustBePositiveFactory(): void
+    {
+        $exception = InvalidAmountException::mustBePositive();
+
+        $this->assertInstanceOf(InvalidAmountException::class, $exception);
+        $this->assertEquals('Amount must be greater than zero', $exception->getMessage());
+    }
+
+    public function testNegativeBalanceExceptionFromSubtractionFactory(): void
+    {
+        $exception = NegativeBalanceException::fromSubtraction('-50.00');
+
+        $this->assertInstanceOf(NegativeBalanceException::class, $exception);
+        $this->assertStringContainsString('-50.00', $exception->getMessage());
     }
 }

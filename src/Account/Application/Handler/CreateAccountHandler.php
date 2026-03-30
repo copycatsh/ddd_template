@@ -3,16 +3,16 @@
 namespace App\Account\Application\Handler;
 
 use App\Account\Application\Command\CreateAccountCommand;
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Port\AccountProjectionQuery;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use Symfony\Component\Uid\Uuid;
 
 class CreateAccountHandler
 {
     public function __construct(
-        private EventSourcedAccountRepositoryInterface $accountRepository,
+        private AccountRepositoryInterface $accountRepository,
         private AccountProjectionQuery $projectionQuery,
     ) {
     }
@@ -30,7 +30,7 @@ class CreateAccountHandler
 
         $accountId = Uuid::v4()->toRfc4122();
 
-        $account = EventSourcedAccount::create(
+        $account = Account::create(
             $accountId,
             $command->getUserId(),
             $command->getCurrency()

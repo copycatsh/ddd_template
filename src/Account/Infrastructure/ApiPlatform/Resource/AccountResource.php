@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Put;
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
 use App\Account\Infrastructure\ApiPlatform\Dto\TransferMoneyDto;
@@ -60,7 +60,7 @@ class AccountResource
     ) {
     }
 
-    public static function fromEventSourcedAccount(EventSourcedAccount $account): self
+    public static function fromAccount(Account $account): self
     {
         return new self(
             $account->getId(),

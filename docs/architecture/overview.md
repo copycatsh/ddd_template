@@ -42,7 +42,7 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 
 ## Implementation Pattern
 
-- **Account context** — Event Sourced only. `EventSourcedAccount` aggregate with state reconstructed by replaying events from `event_store` table. All API and CLI endpoints use ES handlers.
+- **Account context** — Event Sourced only. `Account` aggregate with state reconstructed by replaying events from `event_store` table. All API and CLI endpoints use ES handlers.
 - **User context** — Dual implementation: CRUD (`User`, `DoctrineUserRepository`) + ES (`EventSourcedUser`, `EventSourcedUserRepository`). CRUD is active; ES handlers exist but are not exposed via API.
 - **Transaction context** — CRUD only (`Transaction`, `DoctrineTransactionRepository`). Not an ES aggregate.
 - **Notification context** — CRUD only (`NotificationLog`). Log entity, not an aggregate.
@@ -59,7 +59,7 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 ## Bounded Context: Account
 
 **Entities** (`Domain/Entity/`)
-- `EventSourcedAccount` — ES aggregate extending `AbstractAggregateRoot`. State rebuilt by replaying domain events. Enforces deposit/withdraw rules via bcmath, positive-amount guards, currency matching, and insufficient funds checks.
+- `Account` — ES aggregate extending `AbstractAggregateRoot`. State rebuilt by replaying domain events. Enforces deposit/withdraw rules via bcmath, positive-amount guards, currency matching, and insufficient funds checks.
 
 **Value Objects** (`Domain/ValueObject/`)
 - `Currency` — backed enum (`UAH`, `USD`) with equality helper
@@ -78,7 +78,7 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 - `InvalidAmountException` → 400
 
 **Repository Interfaces** (`Domain/Repository/`)
-- `EventSourcedAccountRepositoryInterface` — `save`, `findById`, `findByUserIdAndCurrency`, `findByUserId`
+- `AccountRepositoryInterface` — `save`, `findById`
 
 > Note: `findByUserId` and `findByUserIdAndCurrency` currently scan all events (no indexing). ES Projections (Phase 4a) will replace this with indexed read-model queries.
 
@@ -105,7 +105,7 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 - `TransferMoneySaga` — orchestrates fund transfer via ES aggregates: creates `Transaction` (PENDING) → withdraws from source → deposits to destination → marks COMPLETED. All saves wrapped in a single DBAL transaction for ACID guarantees. Rolls back on any failure.
 
 **Infrastructure** (`Infrastructure/`)
-- `EventSourcedAccountRepository` — wraps `EventStoreInterface`; scan-based `findByUserId` (to be replaced by projections in Phase 4a)
+- `AccountRepository` — wraps `EventStoreInterface`; persists and reconstitutes aggregates from event store
 - API Platform resource: `AccountResource` — DTO with `#[ApiResource]` annotations defining all routes
 - API Platform processors: `CreateAccount`, `DepositMoney`, `WithdrawMoney`, `TransferMoney` — call ES handlers, return `AccountResource`
 - API Platform providers: `AccountBalance`, `UserAccounts`, `AccountTransactions`

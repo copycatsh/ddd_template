@@ -49,8 +49,7 @@ This is a Symfony 7 / PHP 8.3 project using DDD + CQRS + Event Sourcing + Hexago
 ### Key Patterns to Teach
 
 **Aggregates & Entities**
-- CRUD variant: `src/Account/Domain/Entity/Account.php`
-- Event-sourced variant: `src/Account/Domain/Entity/EventSourcedAccount.php`
+- Event-sourced aggregate: `src/Account/Domain/Entity/Account.php`
 - Base class: `src/Shared/Domain/Aggregate/AbstractAggregateRoot.php`
 
 **Value Objects**

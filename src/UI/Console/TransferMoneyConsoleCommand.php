@@ -3,7 +3,7 @@
 namespace App\UI\Console;
 
 use App\Account\Application\Saga\TransferMoneySaga;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use App\Account\Domain\ValueObject\Money;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -21,7 +21,7 @@ class TransferMoneyConsoleCommand extends Command
 {
     public function __construct(
         private readonly TransferMoneySaga $saga,
-        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
+        private readonly AccountRepositoryInterface $accountRepository,
     ) {
         parent::__construct();
     }

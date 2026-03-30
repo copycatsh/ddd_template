@@ -6,24 +6,24 @@ namespace App\Tests\Unit\Account\Application\Handler;
 
 use App\Account\Application\Command\CreateAccountCommand;
 use App\Account\Application\Handler\CreateAccountHandler;
-use App\Account\Domain\Entity\EventSourcedAccount;
+use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Port\AccountProjectionData;
 use App\Account\Domain\Port\AccountProjectionQuery;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class CreateAccountHandlerTest extends TestCase
 {
-    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountRepositoryInterface&MockObject $accountRepository;
     private AccountProjectionQuery&MockObject $projectionQuery;
     private CreateAccountHandler $handler;
 
     protected function setUp(): void
     {
-        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
+        $this->accountRepository = $this->createMock(AccountRepositoryInterface::class);
         $this->projectionQuery = $this->createMock(AccountProjectionQuery::class);
         $this->handler = new CreateAccountHandler($this->accountRepository, $this->projectionQuery);
     }
@@ -41,7 +41,7 @@ class CreateAccountHandlerTest extends TestCase
         $this->accountRepository
             ->expects($this->once())
             ->method('save')
-            ->with($this->isInstanceOf(EventSourcedAccount::class));
+            ->with($this->isInstanceOf(Account::class));
 
         $accountId = $this->handler->handle($command);
 

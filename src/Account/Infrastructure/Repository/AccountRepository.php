@@ -2,13 +2,13 @@
 
 namespace App\Account\Infrastructure\Repository;
 
-use App\Account\Domain\Entity\EventSourcedAccount;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Entity\Account;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Shared\Infrastructure\EventStore\EventStoreInterface;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Messenger\MessageBusInterface;
 
-class EventSourcedAccountRepository implements EventSourcedAccountRepositoryInterface
+class AccountRepository implements AccountRepositoryInterface
 {
     public function __construct(
         private EventStoreInterface $eventStore,
@@ -28,7 +28,7 @@ class EventSourcedAccountRepository implements EventSourcedAccountRepositoryInte
      * store events in an outbox table (same transaction), then publish asynchronously
      * via a background worker. See: https://microservices.io/patterns/data/transactional-outbox.html
      */
-    public function save(EventSourcedAccount $account): void
+    public function save(Account $account): void
     {
         $events = $account->getUncommittedEvents();
 
@@ -60,7 +60,7 @@ class EventSourcedAccountRepository implements EventSourcedAccountRepositoryInte
         $account->markEventsAsCommitted();
     }
 
-    public function findById(string $id): ?EventSourcedAccount
+    public function findById(string $id): ?Account
     {
         $events = $this->eventStore->getEventsForAggregate($id);
 
@@ -68,6 +68,6 @@ class EventSourcedAccountRepository implements EventSourcedAccountRepositoryInte
             return null;
         }
 
-        return EventSourcedAccount::reconstitute($id, $events);
+        return Account::reconstitute($id, $events);
     }
 }

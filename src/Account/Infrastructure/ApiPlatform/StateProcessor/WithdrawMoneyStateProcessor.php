@@ -6,7 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Account\Application\Command\WithdrawMoneyCommand;
 use App\Account\Application\Handler\WithdrawMoneyHandler;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
+use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
 use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
 
@@ -14,7 +14,7 @@ class WithdrawMoneyStateProcessor implements ProcessorInterface
 {
     public function __construct(
         private readonly WithdrawMoneyHandler $handler,
-        private readonly EventSourcedAccountRepositoryInterface $accountRepository,
+        private readonly AccountRepositoryInterface $accountRepository,
     ) {
     }
 
@@ -37,6 +37,6 @@ class WithdrawMoneyStateProcessor implements ProcessorInterface
             throw new \RuntimeException(sprintf('Account %s not found after withdrawal', $accountId));
         }
 
-        return AccountResource::fromEventSourcedAccount($account);
+        return AccountResource::fromAccount($account);
     }
 }
