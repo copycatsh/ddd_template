@@ -8,6 +8,8 @@ use App\Account\Application\Command\CreateAccountCommand;
 use App\Account\Application\Handler\CreateAccountHandler;
 use App\Account\Domain\Entity\EventSourcedAccount;
 use App\Account\Domain\Exception\AccountAlreadyExistsException;
+use App\Account\Domain\Port\AccountProjectionData;
+use App\Account\Domain\Port\AccountProjectionQuery;
 use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 use App\Account\Domain\ValueObject\Currency;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -16,22 +18,24 @@ use PHPUnit\Framework\TestCase;
 class CreateAccountHandlerTest extends TestCase
 {
     private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountProjectionQuery&MockObject $projectionQuery;
     private CreateAccountHandler $handler;
 
     protected function setUp(): void
     {
         $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
-        $this->handler = new CreateAccountHandler($this->accountRepository);
+        $this->projectionQuery = $this->createMock(AccountProjectionQuery::class);
+        $this->handler = new CreateAccountHandler($this->accountRepository, $this->projectionQuery);
     }
 
     public function testHandleCreatesAccountAndReturnsId(): void
     {
         $command = new CreateAccountCommand('user-123', Currency::UAH);
 
-        $this->accountRepository
+        $this->projectionQuery
             ->expects($this->once())
             ->method('findByUserIdAndCurrency')
-            ->with('user-123', Currency::UAH)
+            ->with('user-123', 'UAH')
             ->willReturn(null);
 
         $this->accountRepository
@@ -52,13 +56,14 @@ class CreateAccountHandlerTest extends TestCase
     {
         $command = new CreateAccountCommand('user-123', Currency::UAH);
 
-        $existingAccount = EventSourcedAccount::create('existing-id', 'user-123', Currency::UAH);
-
-        $this->accountRepository
+        $this->projectionQuery
             ->expects($this->once())
             ->method('findByUserIdAndCurrency')
-            ->with('user-123', Currency::UAH)
-            ->willReturn($existingAccount);
+            ->with('user-123', 'UAH')
+            ->willReturn(new AccountProjectionData(
+                'existing-id', 'user-123', 'UAH', '0.00',
+                new \DateTimeImmutable(), new \DateTimeImmutable(),
+            ));
 
         $this->accountRepository
             ->expects($this->never())

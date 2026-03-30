@@ -5,6 +5,7 @@ namespace App\Account\Application\Handler;
 use App\Account\Application\Command\CreateAccountCommand;
 use App\Account\Domain\Entity\EventSourcedAccount;
 use App\Account\Domain\Exception\AccountAlreadyExistsException;
+use App\Account\Domain\Port\AccountProjectionQuery;
 use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -12,15 +13,15 @@ class CreateAccountHandler
 {
     public function __construct(
         private EventSourcedAccountRepositoryInterface $accountRepository,
+        private AccountProjectionQuery $projectionQuery,
     ) {
     }
 
     public function handle(CreateAccountCommand $command): string
     {
-        // Check if account already exists
-        $existingAccount = $this->accountRepository->findByUserIdAndCurrency(
+        $existingAccount = $this->projectionQuery->findByUserIdAndCurrency(
             $command->getUserId(),
-            $command->getCurrency()
+            $command->getCurrency()->value
         );
 
         if ($existingAccount) {

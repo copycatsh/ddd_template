@@ -14,21 +14,21 @@
 
 **Depends on:** Phase 2.5 (ES migration) — completed
 
-## Phase 4a: ES Projections (fast-tracked)
+## Phase 5: Outbox Pattern
 
-### Rebuild AccountReadModelQuery as ES Projection
+### Transactional Outbox for Event Publishing
 
-**What:** Create a projection handler that listens to `AccountCreatedEvent` / `MoneyDepositedEvent` / `MoneyWithdrawnEvent` and builds an `account_read_model` table. Rebuild `AccountReadModelQuery` to read from this projection table.
+**What:** Replace sync Messenger dispatch in `EventSourcedAccountRepository.save()` with the Outbox Pattern: store events in an `outbox` table (same DBAL transaction as event store), then publish asynchronously via a background worker.
 
-**Why:** ES query handlers currently reconstitute from event store on every read. `findByUserId()` and `findByUserIdAndCurrency()` scan ALL events in the store (`getAllEvents()`). This degrades linearly with total event count.
+**Why:** Sync dispatch works for single-DB but won't survive a microservices split. The outbox pattern guarantees at-least-once delivery across DB boundaries.
 
-**Pros:** O(1) reads instead of O(n) event replay. Proper CQRS+ES read-side pattern. Eliminates full table scans on API endpoints.
+**Pros:** Crash-safe, works across DB boundaries, enables async projections.
 
-**Cons:** Adds eventual consistency (projection may lag behind event store). More infrastructure.
+**Cons:** Adds eventual consistency, infrastructure complexity (message broker, outbox worker).
 
-**Context:** This is the standard CQRS+ES read-side pattern. The current scan-all-events approach was acceptable for a learning template but projections are the production-grade solution. Immediate next PR after ES migration.
+**Context:** Current sync approach is correct for this template's single-DB setup. See TODO comment in `EventSourcedAccountRepository.save()`.
 
-**Depends on:** Phase 2.5 (ES migration) — completed
+**Depends on:** Phase 4a (projections) — completed
 
 ## Phase 6: Full Saga Pattern
 

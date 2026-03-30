@@ -7,37 +7,35 @@ namespace App\Tests\Unit\Account\Application\Handler;
 use App\Account\Application\Handler\GetAccountBalanceHandler;
 use App\Account\Application\Query\GetAccountBalanceQuery;
 use App\Account\Application\Query\Response\AccountBalanceResponse;
-use App\Account\Domain\Entity\EventSourcedAccount;
-use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
+use App\Account\Domain\Port\AccountProjectionData;
+use App\Account\Domain\Port\AccountProjectionQuery;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 
 class GetAccountBalanceHandlerTest extends TestCase
 {
-    private EventSourcedAccountRepositoryInterface&MockObject $accountRepository;
+    private AccountProjectionQuery&MockObject $projectionQuery;
     private GetAccountBalanceHandler $handler;
 
     protected function setUp(): void
     {
-        $this->accountRepository = $this->createMock(EventSourcedAccountRepositoryInterface::class);
-        $this->handler = new GetAccountBalanceHandler($this->accountRepository);
+        $this->projectionQuery = $this->createMock(AccountProjectionQuery::class);
+        $this->handler = new GetAccountBalanceHandler($this->projectionQuery);
     }
 
     public function testHandleReturnsBalanceResponse(): void
     {
-        $account = EventSourcedAccount::create('acc-1', 'user-1', Currency::UAH);
-        $account->markEventsAsCommitted();
-        $account->deposit(new Money('250.00', Currency::UAH));
-
         $query = new GetAccountBalanceQuery('acc-1');
 
-        $this->accountRepository
+        $this->projectionQuery
             ->expects($this->once())
-            ->method('findById')
+            ->method('findByAccountId')
             ->with('acc-1')
-            ->willReturn($account);
+            ->willReturn(new AccountProjectionData(
+                'acc-1', 'user-1', 'UAH', '250.00',
+                new \DateTimeImmutable('2026-01-01'),
+                new \DateTimeImmutable('2026-01-02'),
+            ));
 
         $response = $this->handler->handle($query);
 
@@ -51,14 +49,12 @@ class GetAccountBalanceHandlerTest extends TestCase
     {
         $query = new GetAccountBalanceQuery('nonexistent');
 
-        $this->accountRepository
+        $this->projectionQuery
             ->expects($this->once())
-            ->method('findById')
+            ->method('findByAccountId')
             ->with('nonexistent')
             ->willReturn(null);
 
-        $response = $this->handler->handle($query);
-
-        $this->assertNull($response);
+        $this->assertNull($this->handler->handle($query));
     }
 }

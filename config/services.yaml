@@ -16,11 +16,8 @@ services:
     App\User\Domain\Repository\UserRepositoryInterface:
         alias: App\User\Infrastructure\Repository\DoctrineUserRepository
 
-    App\Account\Domain\Repository\AccountRepositoryInterface:
-        alias: App\Account\Infrastructure\Repository\DoctrineAccountRepository
-
-    App\Account\Domain\Port\AccountReadModelQuery:
-        alias: App\Account\Infrastructure\Repository\DoctrineAccountReadModelQuery
+    App\Account\Domain\Port\AccountProjectionQuery:
+        alias: App\Account\Infrastructure\Projection\DoctrineAccountProjectionQuery
 
     App\Notification\Domain\Port\NotificationHistoryQuery:
         alias: App\Notification\Infrastructure\Query\DoctrineNotificationHistoryQuery
@@ -36,6 +33,8 @@ services:
         class: App\Account\Infrastructure\Repository\EventSourcedAccountRepository
         arguments:
             $eventStore: '@App\Shared\Infrastructure\EventStore\EventStoreInterface'
+            $messageBus: '@messenger.default_bus'
+            $connection: '@doctrine.dbal.default_connection'
 
     App\User\Domain\Repository\EventSourcedUserRepositoryInterface:
         class: App\User\Infrastructure\Repository\EventSourcedUserRepository

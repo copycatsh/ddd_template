@@ -7,3 +7,6 @@ framework:
             App\Transaction\Domain\Event\TransactionCreatedEvent: sync
             App\Transaction\Domain\Event\TransactionCompletedEvent: sync
             App\Transaction\Domain\Event\TransactionFailedEvent: sync
+            App\Account\Domain\Event\AccountCreatedEvent: sync
+            App\Account\Domain\Event\MoneyDepositedEvent: sync
+            App\Account\Domain\Event\MoneyWithdrawnEvent: sync
