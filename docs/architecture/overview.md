@@ -220,13 +220,17 @@ Anti-corruption layer — read-only cross-context access without depending on Us
 
 - `DomainExceptionSubscriber` — maps domain exceptions to HTTP responses (`kernel.exception`, priority 10)
 - `OpenApiJwtDecorator` — injects JWT bearer security scheme into OpenAPI docs
-- `HealthController` — `GET /health`, `GET /`
 
 ---
 
-## Legacy / Non-DDD Code
+## UI Layer (`src/UI/`)
 
-**`src/Command/`** — Symfony Console commands wrapping DDD handlers (CLI entry points):
+Presentation-layer entry points, grouped by port type (Hexagonal Architecture "driving adapters").
+
+**`src/UI/Http/`** — HTTP controllers:
+- `HealthController` — `GET /health`, `GET /`
+
+**`src/UI/Console/`** — Symfony Console commands wrapping DDD handlers (CLI entry points):
 `CreateUser`, `CreateUserEventSourced`, `ChangeUserEmail`, `DepositMoney`, `WithdrawMoney`, `TransferMoney`, `GetAccountBalance`, `GetUserAccounts`, `GetAccountTransactions`, `GetUserInfo`
 
 **`src/DataFixtures/`** — Doctrine fixtures: `UserFixtures`, `AccountFixtures`, `AppFixtures`

@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Command;
+namespace App\UI\Console;
 
 use App\User\Application\Command\ChangeUserEmailCommand;
 use App\User\Application\Handler\EventSourcedChangeUserEmailHandler;

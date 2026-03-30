@@ -1,9 +1,9 @@
 <?php
 
-namespace App\Command;
+namespace App\UI\Console;
 
 use App\User\Application\Command\CreateUserCommand;
-use App\User\Application\Handler\EventSourcedCreateUserHandler;
+use App\User\Application\Handler\CreateUserHandler;
 use App\User\Domain\ValueObject\UserRole;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -14,13 +14,13 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
-    name: 'app:user:create-es',
-    description: 'Create user via Event Sourcing',
+    name: 'app:create-user',
+    description: 'Create a new user via CQRS command',
 )]
-class CreateUserEventSourcedConsoleCommand extends Command
+class CreateUserConsoleCommand extends Command
 {
     public function __construct(
-        private EventSourcedCreateUserHandler $handler,
+        private CreateUserHandler $createUserHandler,
     ) {
         parent::__construct();
     }
@@ -30,7 +30,7 @@ class CreateUserEventSourcedConsoleCommand extends Command
         $this
             ->addArgument('email', InputArgument::REQUIRED, 'User email')
             ->addArgument('password', InputArgument::REQUIRED, 'User password')
-            ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'User role', 'USER')
+            ->addOption('role', 'r', InputOption::VALUE_OPTIONAL, 'User role (USER or ADMIN)', 'USER')
         ;
     }
 
@@ -44,21 +44,21 @@ class CreateUserEventSourcedConsoleCommand extends Command
 
         try {
             $role = UserRole::from('ROLE_'.strtoupper($roleString));
-            $command = new CreateUserCommand($email, $password, $role);
+        } catch (\ValueError $e) {
+            $io->error('Invalid role. Use USER or ADMIN.');
 
-            $userId = $this->handler->handle($command);
+            return Command::FAILURE;
+        }
 
-            $io->success([
-                'User created via Event Sourcing!',
-                "User ID: $userId",
-                "Email: $email",
-            ]);
+        $command = new CreateUserCommand($email, $password, $role);
 
-            $io->note('Check Event Store: SELECT * FROM event_store WHERE aggregate_id = \''.$userId.'\'');
+        try {
+            $userId = $this->createUserHandler->handle($command);
+            $io->success("User created successfully with ID: $userId");
 
             return Command::SUCCESS;
         } catch (\Exception $e) {
-            $io->error('Error: '.$e->getMessage());
+            $io->error('Error creating user: '.$e->getMessage());
 
             return Command::FAILURE;
         }

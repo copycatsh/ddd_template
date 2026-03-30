@@ -46,6 +46,32 @@
 
 **Depends on:** Phase 2.5 (ES migration) — completed
 
+## UI Layer
+
+### Smoke tests for console commands and HealthController
+
+**What:** Integration tests that verify each of the 10 console commands runs without error (exit code 0 with valid args) and HealthController endpoints return 200.
+
+**Why:** All CLI and HTTP entry points have zero test coverage. The underlying CQRS handlers are fully tested, but DI wiring and argument parsing are not. A misconfigured service binding would only surface at runtime.
+
+**Cons:** Requires Symfony kernel boot in tests (integration test setup).
+
+**Context:** These are thin wrappers around CQRS handlers. Risk is low but not zero.
+
+**Depends on:** None
+
+### Distribute console commands to bounded contexts
+
+**What:** Move each console command from `src/UI/Console/` into its owning bounded context's `Infrastructure/Console/` directory (e.g., `DepositMoneyConsoleCommand` → `Account/Infrastructure/Console/`).
+
+**Why:** API Platform processors already live inside bounded contexts. Console commands should follow the same pattern for hexagonal architecture consistency.
+
+**Cons:** Cross-context commands (e.g., `GetUserInfoConsoleCommand` reads User+Account data) need a home — likely stays in `UI/Console/` or goes to a shared query namespace.
+
+**Context:** The flat `UI/Console/` grouping was chosen as the first step. Distribution is a follow-up architectural decision.
+
+**Depends on:** UI layer restructuring (this PR)
+
 ## Phase 2: Domain Refinements
 
 ### Change Money::__construct() to throw DomainException

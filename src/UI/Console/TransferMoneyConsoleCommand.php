@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Command;
+namespace App\UI\Console;
 
 use App\Account\Application\Saga\TransferMoneySaga;
 use App\Account\Domain\Repository\EventSourcedAccountRepositoryInterface;
