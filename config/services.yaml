@@ -47,6 +47,9 @@ services:
     App\Notification\Domain\Port\NotificationHistoryQuery:
         alias: App\Notification\Infrastructure\Query\DoctrineNotificationHistoryQuery
 
+    App\Shared\Integration\IntegrationEventMapperInterface:
+        alias: App\Shared\Integration\IntegrationEventMapper
+
     # Event Store
     App\Shared\Infrastructure\EventStore\EventStoreInterface:
         class: App\Shared\Infrastructure\EventStore\DoctrineEventStore

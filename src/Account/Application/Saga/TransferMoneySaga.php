@@ -5,6 +5,7 @@ namespace App\Account\Application\Saga;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
 use App\Account\Domain\Service\MoneyTransferDomainService;
 use App\Shared\Domain\ValueObject\Money;
+use App\Shared\Integration\IntegrationEventMapperInterface;
 use App\Transaction\Domain\Entity\Transaction;
 use App\Transaction\Domain\Event\TransactionCompletedEvent;
 use App\Transaction\Domain\Event\TransactionCreatedEvent;
@@ -23,15 +24,17 @@ class TransferMoneySaga
         private readonly Connection $connection,
         private readonly MessageBusInterface $messageBus,
         private readonly MoneyTransferDomainService $domainService,
+        private readonly IntegrationEventMapperInterface $integrationEventMapper,
     ) {
     }
 
     /**
      * Transfer money between two accounts using Event Sourcing.
      *
-     * Domain validation (same-account, currency match, transfer limits) is
-     * delegated to MoneyTransferDomainService. This saga is a pure orchestrator:
-     * load accounts, validate, execute within DBAL transaction, dispatch events.
+     * Domain validation is delegated to MoneyTransferDomainService.
+     * Cross-BC communication uses Integration Events (Published Language pattern):
+     * domain events are created, mapped to integration events, then dispatched
+     * via Messenger. Notification BC consumes integration events only.
      *
      * @throws \DomainException  if validation failed (account not found)
      * @throws \RuntimeException if the operation failed
@@ -79,18 +82,22 @@ class TransferMoneySaga
 
             $this->connection->commit();
 
-            $this->messageBus->dispatch(new TransactionCreatedEvent(
-                $transactionId,
-                $fromAccountId,
-                TransactionType::TRANSFER,
-                $amount->getAmount(),
-                $amount->getCurrency()->value,
-            ));
+            $this->messageBus->dispatch(
+                $this->integrationEventMapper->map(new TransactionCreatedEvent(
+                    $transactionId,
+                    $fromAccountId,
+                    TransactionType::TRANSFER,
+                    $amount->getAmount(),
+                    $amount->getCurrency()->value,
+                ))
+            );
 
-            $this->messageBus->dispatch(new TransactionCompletedEvent(
-                $transactionId,
-                $fromAccountId,
-            ));
+            $this->messageBus->dispatch(
+                $this->integrationEventMapper->map(new TransactionCompletedEvent(
+                    $transactionId,
+                    $fromAccountId,
+                ))
+            );
 
             return $transactionId;
         } catch (\Exception $e) {
@@ -101,11 +108,13 @@ class TransferMoneySaga
             }
 
             try {
-                $this->messageBus->dispatch(new TransactionFailedEvent(
-                    $transactionId,
-                    $fromAccountId,
-                    $e->getMessage(),
-                ));
+                $this->messageBus->dispatch(
+                    $this->integrationEventMapper->map(new TransactionFailedEvent(
+                        $transactionId,
+                        $fromAccountId,
+                        $e->getMessage(),
+                    ))
+                );
             } catch (\Throwable) {
                 // Dispatch failure must not hide the original exception
             }

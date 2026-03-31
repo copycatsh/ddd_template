@@ -7,7 +7,7 @@ use App\Notification\Domain\Port\NotificationAccountQuery;
 use App\Notification\Domain\Port\NotificationUserQuery;
 use App\Notification\Domain\Repository\NotificationLogRepositoryInterface;
 use App\Notification\Domain\ValueObject\NotificationType;
-use App\Transaction\Domain\Event\TransactionCreatedEvent;
+use App\Shared\Integration\Event\TransactionCreatedIntegrationEvent;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Email;
@@ -23,9 +23,9 @@ class TransactionCreatedNotificationHandler
     ) {
     }
 
-    public function __invoke(TransactionCreatedEvent $event): void
+    public function __invoke(TransactionCreatedIntegrationEvent $event): void
     {
-        $account = $this->accountQuery->findByAccountId($event->getAccountId());
+        $account = $this->accountQuery->findByAccountId($event->accountId);
         if (null === $account) {
             return;
         }
@@ -40,16 +40,16 @@ class TransactionCreatedNotificationHandler
             ->subject('Transaction created')
             ->text(sprintf(
                 'Transaction %s created: %s %s',
-                $event->getTransactionId(),
-                $event->getAmount(),
-                $event->getCurrency(),
+                $event->transactionId,
+                $event->amount,
+                $event->currency,
             ));
 
         $this->mailer->send($email);
 
         $log = new NotificationLog(
-            $event->getTransactionId(),
-            $event->getAccountId(),
+            $event->transactionId,
+            $event->accountId,
             $account->userId,
             $user->email,
             NotificationType::TransactionCreated,

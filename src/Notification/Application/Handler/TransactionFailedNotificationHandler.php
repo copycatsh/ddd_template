@@ -7,7 +7,7 @@ use App\Notification\Domain\Port\NotificationAccountQuery;
 use App\Notification\Domain\Port\NotificationUserQuery;
 use App\Notification\Domain\Repository\NotificationLogRepositoryInterface;
 use App\Notification\Domain\ValueObject\NotificationType;
-use App\Transaction\Domain\Event\TransactionFailedEvent;
+use App\Shared\Integration\Event\TransactionFailedIntegrationEvent;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Email;
@@ -23,9 +23,9 @@ class TransactionFailedNotificationHandler
     ) {
     }
 
-    public function __invoke(TransactionFailedEvent $event): void
+    public function __invoke(TransactionFailedIntegrationEvent $event): void
     {
-        $account = $this->accountQuery->findByAccountId($event->getAccountId());
+        $account = $this->accountQuery->findByAccountId($event->accountId);
         if (null === $account) {
             return;
         }
@@ -35,9 +35,9 @@ class TransactionFailedNotificationHandler
             return;
         }
 
-        $body = sprintf('Transaction %s failed.', $event->getTransactionId());
-        if (null !== $event->getReason()) {
-            $body .= sprintf(' Reason: %s', $event->getReason());
+        $body = sprintf('Transaction %s failed.', $event->transactionId);
+        if (null !== $event->reason) {
+            $body .= sprintf(' Reason: %s', $event->reason);
         }
 
         $email = (new Email())
@@ -48,8 +48,8 @@ class TransactionFailedNotificationHandler
         $this->mailer->send($email);
 
         $log = new NotificationLog(
-            $event->getTransactionId(),
-            $event->getAccountId(),
+            $event->transactionId,
+            $event->accountId,
             $account->userId,
             $user->email,
             NotificationType::TransactionFailed,

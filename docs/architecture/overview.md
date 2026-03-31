@@ -188,6 +188,9 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 **Domain Events** (`Domain/Event/`)
 > These exist but are **never dispatched**. Wiring them through Messenger is pending (Notification context Task 11).
 
+> These events are internal to Transaction BC. Cross-BC consumers receive
+> Integration Events (`Shared/Integration/Event/`) via IntegrationEventMapper.
+
 - `TransactionCreatedEvent` — `transactionId`, `accountId`, `TransactionType`, `amount`, `currency`
 - `TransactionCompletedEvent` — `transactionId`, `accountId`
 - `TransactionFailedEvent` — `transactionId`, `accountId`, `reason?`
@@ -211,6 +214,9 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 > **Status:** Domain layer only. Application and Infrastructure layers pending (Tasks 4–12).
 > **Branch:** `feature/notification-bounded-context` (worktree: `.worktrees/notification`)
 
+> Handlers consume **Integration Events** (`Shared/Integration/Event/`),
+> not Transaction domain events. This decouples Notification from Transaction BC.
+
 **Entities** (`Domain/Entity/`)
 - `NotificationLog` — Doctrine ORM entity (`notification_log` table). Records sent notifications: `transactionId`, `accountId`, `userId`, `recipientEmail`, `notificationType`, `sentAt`.
 
@@ -221,6 +227,24 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 Anti-corruption layer — read-only cross-context access without depending on User/Account domain models.
 - `NotificationUserQuery` / `NotificationUserData` (`userId`, `email`)
 - `NotificationAccountQuery` / `NotificationAccountData` (`accountId`, `userId`, `currency`)
+
+---
+
+## Integration Events (Published Language)
+
+Integration events decouple cross-BC communication from domain models.
+
+**Integration Events** (`Shared/Integration/Event/`)
+- `TransactionCreatedIntegrationEvent` — `transactionId`, `accountId`, `amount`, `currency`
+- `TransactionCompletedIntegrationEvent` — `transactionId`, `accountId`
+- `TransactionFailedIntegrationEvent` — `transactionId`, `accountId`, `reason?`
+
+**Mapper** (`Shared/Integration/`)
+- `IntegrationEventMapperInterface` / `IntegrationEventMapper` — translates Transaction domain events to integration event DTOs
+
+**Flow:** TransferMoneySaga creates domain events → IntegrationEventMapper.map() → integration event DTOs → Messenger dispatch → Notification handlers
+
+Domain Events (Transaction BC internal) vs Integration Events (cross-BC public contract). See ADR 004 for rationale.
 
 ---
 

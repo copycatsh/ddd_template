@@ -12,7 +12,7 @@ use App\Notification\Domain\Port\NotificationUserData;
 use App\Notification\Domain\Port\NotificationUserQuery;
 use App\Notification\Domain\Repository\NotificationLogRepositoryInterface;
 use App\Notification\Domain\ValueObject\NotificationType;
-use App\Transaction\Domain\Event\TransactionFailedEvent;
+use App\Shared\Integration\Event\TransactionFailedIntegrationEvent;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -53,7 +53,7 @@ final class TransactionFailedNotificationHandlerTest extends TestCase
         $recipientEmail = 'user@example.com';
         $reason = 'Insufficient funds';
 
-        $event = new TransactionFailedEvent(
+        $event = new TransactionFailedIntegrationEvent(
             $transactionId,
             $accountId,
             $reason,
@@ -103,7 +103,7 @@ final class TransactionFailedNotificationHandlerTest extends TestCase
         $userId = 'user-789';
         $recipientEmail = 'user@example.com';
 
-        $event = new TransactionFailedEvent(
+        $event = new TransactionFailedIntegrationEvent(
             $transactionId,
             $accountId,
             null,
@@ -150,7 +150,7 @@ final class TransactionFailedNotificationHandlerTest extends TestCase
     #[Test]
     public function testSkipsWhenAccountNotFound(): void
     {
-        $event = new TransactionFailedEvent(
+        $event = new TransactionFailedIntegrationEvent(
             'txn-123',
             'acc-456',
             'Some reason',
@@ -183,7 +183,7 @@ final class TransactionFailedNotificationHandlerTest extends TestCase
         $accountId = 'acc-456';
         $userId = 'user-789';
 
-        $event = new TransactionFailedEvent(
+        $event = new TransactionFailedIntegrationEvent(
             'txn-123',
             $accountId,
             'Some reason',
