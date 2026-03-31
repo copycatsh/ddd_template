@@ -3,7 +3,7 @@
 namespace App\Account\Application\Saga;
 
 use App\Account\Domain\Repository\AccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\ValueObject\Money;
 use App\Transaction\Domain\Entity\Transaction;
 use App\Transaction\Domain\Event\TransactionCompletedEvent;
 use App\Transaction\Domain\Event\TransactionCreatedEvent;

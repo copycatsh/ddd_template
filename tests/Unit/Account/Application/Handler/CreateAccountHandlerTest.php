@@ -11,7 +11,7 @@ use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Port\AccountProjectionData;
 use App\Account\Domain\Port\AccountProjectionQuery;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Currency;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

@@ -2,8 +2,8 @@
 
 namespace App\Account\Domain\Event;
 
-use App\Account\Domain\ValueObject\Money;
 use App\Shared\Domain\Event\AbstractDomainEvent;
+use App\Shared\Domain\ValueObject\Money;
 
 class MoneyWithdrawnEvent extends AbstractDomainEvent
 {

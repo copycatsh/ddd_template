@@ -2,7 +2,7 @@
 
 namespace App\Account\Application\Command;
 
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\ValueObject\Money;
 
 class DepositMoneyCommand
 {

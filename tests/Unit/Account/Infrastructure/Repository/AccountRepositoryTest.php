@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Tests\Unit\Account\Infrastructure\Repository;
 
 use App\Account\Domain\Entity\Account;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
 use App\Account\Infrastructure\Repository\AccountRepository;
+use App\Shared\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Money;
 use App\Shared\Infrastructure\EventStore\EventStoreInterface;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\Attributes\CoversClass;

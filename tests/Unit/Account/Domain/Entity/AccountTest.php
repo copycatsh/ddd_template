@@ -6,11 +6,11 @@ use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Event\AccountCreatedEvent;
 use App\Account\Domain\Event\MoneyDepositedEvent;
 use App\Account\Domain\Event\MoneyWithdrawnEvent;
-use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\Exception\CurrencyMismatchException;
 use App\Shared\Domain\Exception\InvalidAmountException;
+use App\Shared\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Money;
 use PHPUnit\Framework\TestCase;
 
 class AccountTest extends TestCase

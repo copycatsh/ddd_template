@@ -2,7 +2,7 @@
 
 namespace App\Transaction\Domain\Entity;
 
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\ValueObject\Money;
 use App\Transaction\Domain\Exception\TransactionAlreadyCompletedException;
 use App\Transaction\Domain\ValueObject\TransactionStatus;
 use App\Transaction\Domain\ValueObject\TransactionType;

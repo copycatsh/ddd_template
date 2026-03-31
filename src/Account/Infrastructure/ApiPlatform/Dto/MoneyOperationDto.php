@@ -2,8 +2,8 @@
 
 namespace App\Account\Infrastructure\ApiPlatform\Dto;
 
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Money;
 use Symfony\Component\Validator\Constraints as Assert;
 
 class MoneyOperationDto

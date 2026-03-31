@@ -9,8 +9,8 @@ use App\Account\Application\Handler\DepositMoneyHandler;
 use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\AccountNotFoundException;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Money;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

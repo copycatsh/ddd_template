@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Tests\Unit\Account\Domain\ValueObject;
+namespace App\Tests\Unit\Shared\Domain\ValueObject;
 
-use App\Account\Domain\Exception\CurrencyMismatchException;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\Exception\CurrencyMismatchException;
 use App\Shared\Domain\Exception\InvalidAmountException;
 use App\Shared\Domain\Exception\NegativeBalanceException;
+use App\Shared\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Money;
 use PHPUnit\Framework\TestCase;
 
 class MoneyTest extends TestCase

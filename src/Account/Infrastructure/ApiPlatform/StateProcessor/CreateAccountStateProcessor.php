@@ -7,9 +7,9 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Account\Application\Command\CreateAccountCommand;
 use App\Account\Application\Handler\CreateAccountHandler;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
 use App\Account\Infrastructure\ApiPlatform\Dto\CreateAccountDto;
 use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
+use App\Shared\Domain\ValueObject\Currency;
 
 class CreateAccountStateProcessor implements ProcessorInterface
 {

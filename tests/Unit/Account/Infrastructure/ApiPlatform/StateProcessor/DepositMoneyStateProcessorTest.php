@@ -8,11 +8,11 @@ use ApiPlatform\Metadata\Put;
 use App\Account\Application\Handler\DepositMoneyHandler;
 use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
 use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
 use App\Account\Infrastructure\ApiPlatform\StateProcessor\DepositMoneyStateProcessor;
+use App\Shared\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Money;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

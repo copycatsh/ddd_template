@@ -4,8 +4,8 @@ namespace App\UI\Console;
 
 use App\Account\Application\Command\WithdrawMoneyCommand;
 use App\Account\Application\Handler\WithdrawMoneyHandler;
-use App\Account\Domain\ValueObject\Currency;
-use App\Account\Domain\ValueObject\Money;
+use App\Shared\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Money;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;

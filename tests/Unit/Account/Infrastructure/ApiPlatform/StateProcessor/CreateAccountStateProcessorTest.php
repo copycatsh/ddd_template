@@ -8,10 +8,10 @@ use ApiPlatform\Metadata\Post;
 use App\Account\Application\Handler\CreateAccountHandler;
 use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
-use App\Account\Domain\ValueObject\Currency;
 use App\Account\Infrastructure\ApiPlatform\Dto\CreateAccountDto;
 use App\Account\Infrastructure\ApiPlatform\Resource\AccountResource;
 use App\Account\Infrastructure\ApiPlatform\StateProcessor\CreateAccountStateProcessor;
+use App\Shared\Domain\ValueObject\Currency;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 

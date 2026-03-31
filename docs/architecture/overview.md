@@ -61,9 +61,7 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 **Entities** (`Domain/Entity/`)
 - `Account` — ES aggregate extending `AbstractAggregateRoot`. State rebuilt by replaying domain events. Enforces deposit/withdraw rules via bcmath, positive-amount guards, currency matching, and insufficient funds checks.
 
-**Value Objects** (`Domain/ValueObject/`)
-- `Currency` — backed enum (`UAH`, `USD`) with equality helper
-- `Money` — immutable; wraps `string $amount` + `Currency`. Guards negative amounts and currency mismatches.
+**Value Objects** — `Money` and `Currency` live in Shared kernel (`src/Shared/Domain/ValueObject/`)
 
 **Domain Events** (`Domain/Event/`)
 - `AccountCreatedEvent` — `accountId`, `userId`, `Currency`
@@ -73,9 +71,9 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 **Domain Exceptions** (`Domain/Exception/`)
 - `AccountAlreadyExistsException` → 409
 - `AccountNotFoundException` → 404
-- `CurrencyMismatchException` → 400
 - `InsufficientFundsException` → 400
-- `InvalidAmountException` → 400
+
+Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatchException` are in Shared kernel (`src/Shared/Domain/Exception/`).
 
 **Repository Interfaces** (`Domain/Repository/`)
 - `AccountRepositoryInterface` — `save`, `findById`
@@ -213,8 +211,15 @@ Anti-corruption layer — read-only cross-context access without depending on Us
 - `DomainEventInterface` — contract: `getAggregateId`, `getEventType`, `getOccurredAt`, `getEventData`, `getVersion`
 - `AbstractDomainEvent` — base class implementing `DomainEventInterface`. Sets `occurredAt = now()`, `version = 1`. Subclasses implement `getAggregateId()` and `getEventData()`.
 
-**Domain exception base** (`Domain/Exception/`)
+**Value Objects** (`Domain/ValueObject/`)
+- `Currency` — backed enum (`UAH`, `USD`) with equality helper
+- `Money` — immutable; wraps `string $amount` + `Currency`. Guards negative amounts and currency mismatches.
+
+**Domain exceptions** (`Domain/Exception/`)
 - `DomainException` — abstract base extending PHP `\DomainException`
+- `InvalidAmountException` → 400 (negative amount, non-positive operation amount)
+- `NegativeBalanceException` → 400 (subtraction would result in negative)
+- `CurrencyMismatchException` → 400 (operation currency doesn't match account currency)
 
 **Infrastructure** (`Infrastructure/EventStore/`)
 - `EventStoreInterface` — `saveEvents`, `getEventsForAggregate`, `getEventsForAggregateFromVersion`, `getAllEvents`, `getEventsByType`
