@@ -123,6 +123,8 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 - `User` — CRUD aggregate, Doctrine ORM entity. Implements Symfony `UserInterface` + `PasswordAuthenticatedUserInterface`.
 - `EventSourcedUser` — ES aggregate. Supports `create()` and `changeEmail()`.
 
+> **Dead code:** ES layer (`EventSourcedUser`, `EventSourcedUserRepository`, `EventSourcedUserRepositoryInterface`, `EventSourcedCreateUserHandler`, `EventSourcedChangeUserEmailHandler`) is dead code — scheduled for removal in Phase 6.
+
 **Value Objects** (`Domain/ValueObject/`)
 - `Email` — `final readonly`; validates via `FILTER_VALIDATE_EMAIL`, normalises to lowercase
 - `UserRole` — backed enum: `USER = 'ROLE_USER'`, `ADMIN = 'ROLE_ADMIN'`
