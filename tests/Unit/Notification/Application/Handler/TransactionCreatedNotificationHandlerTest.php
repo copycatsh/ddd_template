@@ -12,8 +12,7 @@ use App\Notification\Domain\Port\NotificationUserData;
 use App\Notification\Domain\Port\NotificationUserQuery;
 use App\Notification\Domain\Repository\NotificationLogRepositoryInterface;
 use App\Notification\Domain\ValueObject\NotificationType;
-use App\Transaction\Domain\Event\TransactionCreatedEvent;
-use App\Transaction\Domain\ValueObject\TransactionType;
+use App\Shared\Integration\Event\TransactionCreatedIntegrationEvent;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -55,10 +54,9 @@ final class TransactionCreatedNotificationHandlerTest extends TestCase
         $amount = '100.00';
         $currency = 'USD';
 
-        $event = new TransactionCreatedEvent(
+        $event = new TransactionCreatedIntegrationEvent(
             $transactionId,
             $accountId,
-            TransactionType::DEPOSIT,
             $amount,
             $currency,
         );
@@ -104,10 +102,9 @@ final class TransactionCreatedNotificationHandlerTest extends TestCase
         $amount = '100.00';
         $currency = 'USD';
 
-        $event = new TransactionCreatedEvent(
+        $event = new TransactionCreatedIntegrationEvent(
             $transactionId,
             $accountId,
-            TransactionType::DEPOSIT,
             $amount,
             $currency,
         );
@@ -142,10 +139,9 @@ final class TransactionCreatedNotificationHandlerTest extends TestCase
         $amount = '100.00';
         $currency = 'USD';
 
-        $event = new TransactionCreatedEvent(
+        $event = new TransactionCreatedIntegrationEvent(
             $transactionId,
             $accountId,
-            TransactionType::DEPOSIT,
             $amount,
             $currency,
         );

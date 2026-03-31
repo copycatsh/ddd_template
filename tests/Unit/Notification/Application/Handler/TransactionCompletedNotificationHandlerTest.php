@@ -12,7 +12,7 @@ use App\Notification\Domain\Port\NotificationUserData;
 use App\Notification\Domain\Port\NotificationUserQuery;
 use App\Notification\Domain\Repository\NotificationLogRepositoryInterface;
 use App\Notification\Domain\ValueObject\NotificationType;
-use App\Transaction\Domain\Event\TransactionCompletedEvent;
+use App\Shared\Integration\Event\TransactionCompletedIntegrationEvent;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -53,7 +53,7 @@ final class TransactionCompletedNotificationHandlerTest extends TestCase
         $recipientEmail = 'user@example.com';
         $currency = 'USD';
 
-        $event = new TransactionCompletedEvent(
+        $event = new TransactionCompletedIntegrationEvent(
             $transactionId,
             $accountId,
         );
@@ -96,7 +96,7 @@ final class TransactionCompletedNotificationHandlerTest extends TestCase
     #[Test]
     public function testSkipsWhenAccountNotFound(): void
     {
-        $event = new TransactionCompletedEvent(
+        $event = new TransactionCompletedIntegrationEvent(
             'txn-123',
             'acc-456',
         );
@@ -128,7 +128,7 @@ final class TransactionCompletedNotificationHandlerTest extends TestCase
         $accountId = 'acc-456';
         $userId = 'user-789';
 
-        $event = new TransactionCompletedEvent(
+        $event = new TransactionCompletedIntegrationEvent(
             'txn-123',
             $accountId,
         );

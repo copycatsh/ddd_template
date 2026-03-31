@@ -13,6 +13,8 @@ use App\Account\Domain\Service\MoneyTransferDomainService;
 use App\Account\Domain\Specification\Transfer\TransferRequest;
 use App\Shared\Domain\ValueObject\Currency;
 use App\Shared\Domain\ValueObject\Money;
+use App\Shared\Integration\IntegrationEventMapper;
+use App\Shared\Integration\IntegrationEventMapperInterface;
 use App\Transaction\Domain\Repository\TransactionRepositoryInterface;
 use Doctrine\DBAL\Connection;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -27,6 +29,7 @@ class TransferMoneySagaTest extends TestCase
     private Connection&MockObject $connection;
     private MessageBusInterface&MockObject $messageBus;
     private MoneyTransferDomainService&MockObject $domainService;
+    private IntegrationEventMapperInterface&MockObject $integrationEventMapper;
     private TransferMoneySaga $saga;
 
     protected function setUp(): void
@@ -39,6 +42,10 @@ class TransferMoneySagaTest extends TestCase
         $this->messageBus->method('dispatch')->willReturnCallback(
             fn (object $message) => new Envelope($message)
         );
+        $this->integrationEventMapper = $this->createMock(IntegrationEventMapperInterface::class);
+        $this->integrationEventMapper->method('map')->willReturnCallback(
+            fn (object $domainEvent): object => (new IntegrationEventMapper())->map($domainEvent)
+        );
 
         $this->saga = new TransferMoneySaga(
             $this->accountRepository,
@@ -46,6 +53,7 @@ class TransferMoneySagaTest extends TestCase
             $this->connection,
             $this->messageBus,
             $this->domainService,
+            $this->integrationEventMapper,
         );
     }
 

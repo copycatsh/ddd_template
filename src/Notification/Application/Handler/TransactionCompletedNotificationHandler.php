@@ -7,7 +7,7 @@ use App\Notification\Domain\Port\NotificationAccountQuery;
 use App\Notification\Domain\Port\NotificationUserQuery;
 use App\Notification\Domain\Repository\NotificationLogRepositoryInterface;
 use App\Notification\Domain\ValueObject\NotificationType;
-use App\Transaction\Domain\Event\TransactionCompletedEvent;
+use App\Shared\Integration\Event\TransactionCompletedIntegrationEvent;
 use Symfony\Component\Mailer\MailerInterface;
 use Symfony\Component\Messenger\Attribute\AsMessageHandler;
 use Symfony\Component\Mime\Email;
@@ -23,9 +23,9 @@ class TransactionCompletedNotificationHandler
     ) {
     }
 
-    public function __invoke(TransactionCompletedEvent $event): void
+    public function __invoke(TransactionCompletedIntegrationEvent $event): void
     {
-        $account = $this->accountQuery->findByAccountId($event->getAccountId());
+        $account = $this->accountQuery->findByAccountId($event->accountId);
         if (null === $account) {
             return;
         }
@@ -40,14 +40,14 @@ class TransactionCompletedNotificationHandler
             ->subject('Transaction completed')
             ->text(sprintf(
                 'Transaction %s completed successfully.',
-                $event->getTransactionId(),
+                $event->transactionId,
             ));
 
         $this->mailer->send($email);
 
         $log = new NotificationLog(
-            $event->getTransactionId(),
-            $event->getAccountId(),
+            $event->transactionId,
+            $event->accountId,
             $account->userId,
             $user->email,
             NotificationType::TransactionCompleted,
