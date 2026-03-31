@@ -100,10 +100,31 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 | `GetAccountTransactionsHandler` | Query | Reads from Transaction context (DBAL) |
 
 **Sagas** (`Application/Saga/`)
-- `TransferMoneySaga` — orchestrates fund transfer via ES aggregates: creates `Transaction` (PENDING) → withdraws from source → deposits to destination → marks COMPLETED. All saves wrapped in a single DBAL transaction for ACID guarantees. Rolls back on any failure.
+- `TransferMoneySaga` — pure orchestrator for fund transfers. Delegates business rule validation to `MoneyTransferDomainService`, then executes: creates Transaction (PENDING), withdraws from source, deposits to destination, marks COMPLETED. All saves wrapped in a single DBAL transaction for ACID guarantees.
+
+**Domain Services** (`Domain/Service/`)
+- `MoneyTransferDomainService` — validates transfer eligibility via Specification composite + Policy enforcement. Pure domain, no infrastructure dependencies.
+
+**Specifications** (`Domain/Specification/`)
+- `SpecificationInterface<T>` — composable business rule with `isSatisfiedBy(T): bool`, `reason(): string`, and `and()/or()/not()` operators
+- `AbstractSpecification<T>` — base class providing `and()/or()/not()` composition methods
+- `AndSpecification`, `OrSpecification`, `NotSpecification` — boolean composites
+- `Transfer/TransferRequest` — DTO carrying transfer context (account IDs, currencies, amount)
+- `Transfer/NotSameAccountSpecification` — rejects same-account transfers
+- `Transfer/CurrencyMatchSpecification` — rejects cross-currency transfers
+- `Transfer/AmountCurrencyMatchSpecification` — rejects amount/account currency mismatch
+
+**Policies** (`Domain/Policy/`)
+- `TransferLimitPolicyInterface` — contract: `enforce(accountId, amount): void` (throws on violation)
+- `TransferLimitPolicy` — enforces daily transfer limit per account. Reads transfer history via `TransferActivityQuery` port. UTC timezone, configurable limit.
+
+**Ports** (`Domain/Port/`)
+- `AccountProjectionQuery` / `AccountProjectionData` — read-model queries for account projections
+- `TransferActivityQuery` / `TransferActivityData` — read-only access to daily transfer activity for policy enforcement
 
 **Infrastructure** (`Infrastructure/`)
 - `AccountRepository` — wraps `EventStoreInterface`; persists and reconstitutes aggregates from event store
+- `Query/DoctrineTransferActivityQuery` — DBAL adapter for `TransferActivityQuery` port. Queries COMPLETED transfers from transactions table.
 - API Platform resource: `AccountResource` — DTO with `#[ApiResource]` annotations defining all routes
 - API Platform processors: `CreateAccount`, `DepositMoney`, `WithdrawMoney`, `TransferMoney` — call ES handlers, return `AccountResource`
 - API Platform providers: `AccountBalance`, `UserAccounts`, `AccountTransactions`

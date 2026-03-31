@@ -7,7 +7,10 @@ namespace App\Tests\Unit\Account\Application\Saga;
 use App\Account\Application\Saga\TransferMoneySaga;
 use App\Account\Domain\Entity\Account;
 use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Account\Domain\Exception\TransferValidationException;
 use App\Account\Domain\Repository\AccountRepositoryInterface;
+use App\Account\Domain\Service\MoneyTransferDomainService;
+use App\Account\Domain\Specification\Transfer\TransferRequest;
 use App\Shared\Domain\ValueObject\Currency;
 use App\Shared\Domain\ValueObject\Money;
 use App\Transaction\Domain\Repository\TransactionRepositoryInterface;
@@ -23,6 +26,7 @@ class TransferMoneySagaTest extends TestCase
     private TransactionRepositoryInterface&MockObject $transactionRepository;
     private Connection&MockObject $connection;
     private MessageBusInterface&MockObject $messageBus;
+    private MoneyTransferDomainService&MockObject $domainService;
     private TransferMoneySaga $saga;
 
     protected function setUp(): void
@@ -31,6 +35,7 @@ class TransferMoneySagaTest extends TestCase
         $this->transactionRepository = $this->createMock(TransactionRepositoryInterface::class);
         $this->connection = $this->createMock(Connection::class);
         $this->messageBus = $this->createMock(MessageBusInterface::class);
+        $this->domainService = $this->createMock(MoneyTransferDomainService::class);
         $this->messageBus->method('dispatch')->willReturnCallback(
             fn (object $message) => new Envelope($message)
         );
@@ -40,6 +45,7 @@ class TransferMoneySagaTest extends TestCase
             $this->transactionRepository,
             $this->connection,
             $this->messageBus,
+            $this->domainService,
         );
     }
 
@@ -68,7 +74,6 @@ class TransferMoneySagaTest extends TestCase
         $this->connection->expects($this->once())->method('beginTransaction');
         $this->connection->expects($this->once())->method('commit');
         $this->connection->expects($this->never())->method('rollBack');
-
         $this->accountRepository->expects($this->exactly(2))->method('save');
         $this->transactionRepository->expects($this->exactly(2))->method('save');
 
@@ -77,14 +82,6 @@ class TransferMoneySagaTest extends TestCase
         $this->assertNotEmpty($transactionId);
         $this->assertEquals('300.00', $from->getBalance()->getAmount());
         $this->assertEquals('300.00', $to->getBalance()->getAmount());
-    }
-
-    public function testExecuteThrowsWhenSameAccount(): void
-    {
-        $this->expectException(\DomainException::class);
-        $this->expectExceptionMessage('Cannot transfer to the same account');
-
-        $this->saga->execute('acc-1', 'acc-1', new Money('100.00', Currency::UAH));
     }
 
     public function testExecuteThrowsWhenSourceNotFound(): void
@@ -113,23 +110,24 @@ class TransferMoneySagaTest extends TestCase
         $this->saga->execute('from-1', 'to-1', new Money('100.00', Currency::UAH));
     }
 
-    public function testExecuteThrowsWhenCurrencyMismatch(): void
+    public function testExecuteDelegatesValidationToDomainService(): void
     {
         $from = $this->createAccountWithBalance('from-1', 'user-1', Currency::UAH, '500.00');
-        $to = $this->createAccountWithBalance('to-1', 'user-2', Currency::USD, '100.00');
+        $to = $this->createAccountWithBalance('to-1', 'user-2', Currency::UAH, '100.00');
+        $amount = new Money('200.00', Currency::UAH);
 
         $this->accountRepository->method('findById')->willReturnMap([
             ['from-1', $from],
             ['to-1', $to],
         ]);
 
-        $this->expectException(\DomainException::class);
-        $this->expectExceptionMessage('Cannot transfer between different currencies');
+        $this->domainService->expects($this->once())->method('validate')
+            ->with($from, $to, $amount);
 
-        $this->saga->execute('from-1', 'to-1', new Money('100.00', Currency::UAH));
+        $this->saga->execute('from-1', 'to-1', $amount);
     }
 
-    public function testExecuteThrowsWhenAmountCurrencyMismatch(): void
+    public function testExecutePropagatesDomainServiceValidationFailure(): void
     {
         $from = $this->createAccountWithBalance('from-1', 'user-1', Currency::UAH, '500.00');
         $to = $this->createAccountWithBalance('to-1', 'user-2', Currency::UAH, '100.00');
@@ -139,10 +137,16 @@ class TransferMoneySagaTest extends TestCase
             ['to-1', $to],
         ]);
 
-        $this->expectException(\DomainException::class);
-        $this->expectExceptionMessage('Amount currency must match account currency');
+        $request = new TransferRequest('from-1', 'to-1', Currency::UAH, Currency::UAH, new Money('200.00', Currency::UAH));
+        $this->domainService->method('validate')->willThrowException(
+            TransferValidationException::fromSpecification($request, 'Cannot transfer to the same account')
+        );
 
-        $this->saga->execute('from-1', 'to-1', new Money('100.00', Currency::USD));
+        $this->connection->expects($this->never())->method('beginTransaction');
+
+        $this->expectException(TransferValidationException::class);
+
+        $this->saga->execute('from-1', 'to-1', new Money('200.00', Currency::UAH));
     }
 
     public function testExecuteRollsBackOnDepositFailure(): void
@@ -155,7 +159,6 @@ class TransferMoneySagaTest extends TestCase
             ['to-1', $to],
         ]);
 
-        // First save (from withdraw) succeeds, second save (to deposit) throws
         $saveCallCount = 0;
         $this->accountRepository->method('save')->willReturnCallback(
             function () use (&$saveCallCount): void {
