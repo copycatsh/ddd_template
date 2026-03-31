@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Tests\Unit\Account\Domain\ValueObject;
+namespace App\Tests\Unit\Shared\Domain\ValueObject;
 
-use App\Account\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Currency;
 use PHPUnit\Framework\TestCase;
 
 class CurrencyTest extends TestCase

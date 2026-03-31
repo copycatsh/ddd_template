@@ -7,7 +7,6 @@ use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
 use ApiPlatform\Metadata\Put;
 use App\Account\Domain\Entity\Account;
-use App\Account\Domain\ValueObject\Currency;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
 use App\Account\Infrastructure\ApiPlatform\Dto\TransferMoneyDto;
 use App\Account\Infrastructure\ApiPlatform\StateProcessor\DepositMoneyStateProcessor;
@@ -16,6 +15,7 @@ use App\Account\Infrastructure\ApiPlatform\StateProcessor\WithdrawMoneyStateProc
 use App\Account\Infrastructure\ApiPlatform\StateProvider\AccountBalanceStateProvider;
 use App\Account\Infrastructure\ApiPlatform\StateProvider\AccountTransactionsStateProvider;
 use App\Account\Infrastructure\ApiPlatform\StateProvider\UserAccountsStateProvider;
+use App\Shared\Domain\ValueObject\Currency;
 
 #[ApiResource(
     operations: [

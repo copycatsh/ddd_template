@@ -2,7 +2,7 @@
 
 namespace App\Account\Application\Command;
 
-use App\Account\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Currency;
 
 class CreateAccountCommand
 {

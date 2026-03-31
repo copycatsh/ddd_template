@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Account\Domain\ValueObject;
+namespace App\Shared\Domain\ValueObject;
 
-use App\Account\Domain\Exception\CurrencyMismatchException;
+use App\Shared\Domain\Exception\CurrencyMismatchException;
 use App\Shared\Domain\Exception\InvalidAmountException;
 use App\Shared\Domain\Exception\NegativeBalanceException;
 

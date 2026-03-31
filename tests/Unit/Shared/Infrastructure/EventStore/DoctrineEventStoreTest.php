@@ -3,7 +3,7 @@
 namespace App\Tests\Unit\Shared\Infrastructure\EventStore;
 
 use App\Account\Domain\Event\AccountCreatedEvent;
-use App\Account\Domain\ValueObject\Currency;
+use App\Shared\Domain\ValueObject\Currency;
 use App\Shared\Infrastructure\EventStore\DoctrineEventStore;
 use App\Transaction\Domain\Event\TransactionCompletedEvent;
 use App\Transaction\Domain\Event\TransactionCreatedEvent;

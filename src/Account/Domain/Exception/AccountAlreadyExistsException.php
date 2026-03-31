@@ -2,8 +2,8 @@
 
 namespace App\Account\Domain\Exception;
 
-use App\Account\Domain\ValueObject\Currency;
 use App\Shared\Domain\Exception\DomainException;
+use App\Shared\Domain\ValueObject\Currency;
 
 class AccountAlreadyExistsException extends DomainException
 {

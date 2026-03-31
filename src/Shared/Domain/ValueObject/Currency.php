@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Account\Domain\ValueObject;
+namespace App\Shared\Domain\ValueObject;
 
 enum Currency: string
 {

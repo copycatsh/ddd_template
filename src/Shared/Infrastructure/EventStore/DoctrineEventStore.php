@@ -175,13 +175,13 @@ class DoctrineEventStore implements EventStoreInterface
             $type = $param->getType();
             $typeName = $type instanceof \ReflectionNamedType ? $type->getName() : null;
 
-            if (\App\Account\Domain\ValueObject\Money::class === $typeName) {
+            if (\App\Shared\Domain\ValueObject\Money::class === $typeName) {
                 if (!isset($eventData['amount'], $eventData['currency'])) {
                     throw new \RuntimeException(sprintf('Missing amount/currency in event data for Money parameter "%s" in event %s', $paramName, $eventType));
                 }
-                $args[] = new \App\Account\Domain\ValueObject\Money(
+                $args[] = new \App\Shared\Domain\ValueObject\Money(
                     $eventData['amount'],
-                    \App\Account\Domain\ValueObject\Currency::from($eventData['currency'])
+                    \App\Shared\Domain\ValueObject\Currency::from($eventData['currency'])
                 );
             } elseif (\App\User\Domain\ValueObject\Email::class === $typeName) {
                 if (!array_key_exists($paramName, $eventData)) {

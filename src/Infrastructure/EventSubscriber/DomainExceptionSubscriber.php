@@ -4,8 +4,8 @@ namespace App\Infrastructure\EventSubscriber;
 
 use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Exception\AccountNotFoundException;
-use App\Account\Domain\Exception\CurrencyMismatchException;
 use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Shared\Domain\Exception\CurrencyMismatchException;
 use App\Shared\Domain\Exception\DomainException;
 use App\Shared\Domain\Exception\InvalidAmountException;
 use App\Shared\Domain\Exception\NegativeBalanceException;
