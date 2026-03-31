@@ -5,6 +5,8 @@ namespace App\Infrastructure\EventSubscriber;
 use App\Account\Domain\Exception\AccountAlreadyExistsException;
 use App\Account\Domain\Exception\AccountNotFoundException;
 use App\Account\Domain\Exception\InsufficientFundsException;
+use App\Account\Domain\Exception\TransferLimitExceededException;
+use App\Account\Domain\Exception\TransferValidationException;
 use App\Shared\Domain\Exception\CurrencyMismatchException;
 use App\Shared\Domain\Exception\DomainException;
 use App\Shared\Domain\Exception\InvalidAmountException;
@@ -46,7 +48,9 @@ class DomainExceptionSubscriber implements EventSubscriberInterface
             $exception instanceof InsufficientFundsException,
             $exception instanceof CurrencyMismatchException,
             $exception instanceof InvalidAmountException,
-            $exception instanceof NegativeBalanceException => new JsonResponse(
+            $exception instanceof NegativeBalanceException,
+            $exception instanceof TransferValidationException,
+            $exception instanceof TransferLimitExceededException => new JsonResponse(
                 ['error' => $exception->getMessage()],
                 Response::HTTP_BAD_REQUEST
             ),

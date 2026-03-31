@@ -3,6 +3,7 @@
 namespace App\Account\Application\Saga;
 
 use App\Account\Domain\Repository\AccountRepositoryInterface;
+use App\Account\Domain\Service\MoneyTransferDomainService;
 use App\Shared\Domain\ValueObject\Money;
 use App\Transaction\Domain\Entity\Transaction;
 use App\Transaction\Domain\Event\TransactionCompletedEvent;
@@ -21,24 +22,18 @@ class TransferMoneySaga
         private readonly TransactionRepositoryInterface $transactionRepository,
         private readonly Connection $connection,
         private readonly MessageBusInterface $messageBus,
+        private readonly MoneyTransferDomainService $domainService,
     ) {
     }
 
     /**
      * Transfer money between two accounts using Event Sourcing.
      *
-     * Uses DBAL transaction to wrap all saves (event store + transaction record)
-     * for ACID guarantees. Since both the EventStore and TransactionRepository
-     * share the same database connection, a single DBAL transaction ensures
-     * all-or-nothing semantics.
+     * Domain validation (same-account, currency match, transfer limits) is
+     * delegated to MoneyTransferDomainService. This saga is a pure orchestrator:
+     * load accounts, validate, execute within DBAL transaction, dispatch events.
      *
-     * NOTE: In a distributed system with separate databases per bounded context,
-     * you would use compensating events instead of a shared DB transaction:
-     * - If deposit fails after successful withdraw, record a compensating
-     *   deposit event on the source account to restore funds.
-     * - See Phase 6 TODO for full saga state machine pattern.
-     *
-     * @throws \DomainException  if validation failed
+     * @throws \DomainException  if validation failed (account not found)
      * @throws \RuntimeException if the operation failed
      */
     public function execute(
@@ -46,10 +41,6 @@ class TransferMoneySaga
         string $toAccountId,
         Money $amount,
     ): string {
-        if ($fromAccountId === $toAccountId) {
-            throw new \DomainException('Cannot transfer to the same account');
-        }
-
         $fromAccount = $this->accountRepository->findById($fromAccountId);
         $toAccount = $this->accountRepository->findById($toAccountId);
 
@@ -61,13 +52,7 @@ class TransferMoneySaga
             throw new \DomainException("Destination account {$toAccountId} not found");
         }
 
-        if (!$fromAccount->getCurrency()->equals($toAccount->getCurrency())) {
-            throw new \DomainException('Cannot transfer between different currencies');
-        }
-
-        if (!$amount->getCurrency()->equals($fromAccount->getCurrency())) {
-            throw new \DomainException('Amount currency must match account currency');
-        }
+        $this->domainService->validate($fromAccount, $toAccount, $amount);
 
         $transactionId = Uuid::v4()->toRfc4122();
 

@@ -19,6 +19,31 @@ services:
     App\Account\Domain\Port\AccountProjectionQuery:
         alias: App\Account\Infrastructure\Projection\DoctrineAccountProjectionQuery
 
+    App\Account\Domain\Port\TransferActivityQuery:
+        alias: App\Account\Infrastructure\Query\DoctrineTransferActivityQuery
+
+    App\Account\Domain\Policy\TransferLimitPolicyInterface:
+        class: App\Account\Domain\Policy\TransferLimitPolicy
+        arguments:
+            $activityQuery: '@App\Account\Domain\Port\TransferActivityQuery'
+            $dailyLimit: '10000.00'
+
+    App\Account\Domain\Service\MoneyTransferDomainService:
+        arguments:
+            $transferSpecification: !service
+                class: App\Account\Domain\Specification\AndSpecification
+                arguments:
+                    $left: !service
+                        class: App\Account\Domain\Specification\AndSpecification
+                        arguments:
+                            $left: !service
+                                class: App\Account\Domain\Specification\Transfer\NotSameAccountSpecification
+                            $right: !service
+                                class: App\Account\Domain\Specification\Transfer\CurrencyMatchSpecification
+                    $right: !service
+                        class: App\Account\Domain\Specification\Transfer\AmountCurrencyMatchSpecification
+            $transferLimitPolicy: '@App\Account\Domain\Policy\TransferLimitPolicyInterface'
+
     App\Notification\Domain\Port\NotificationHistoryQuery:
         alias: App\Notification\Infrastructure\Query\DoctrineNotificationHistoryQuery
 
