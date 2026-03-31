@@ -1,83 +1,110 @@
-# TODOS
+# ddd_template — Roadmap
 
-## Phase 5: Outbox Pattern
+## Completed
 
-### Transactional Outbox for Event Publishing
+- ✅ Phase 1: Cleanup + Aggregate Factory (factory methods on aggregates)
+- ✅ Phase 2.5: ES Migration (Account BC fully event-sourced)
+- ✅ Phase 2.6: UI structure (hexagonal driving adapters)
+- ✅ Phase 3: ES Projections (account_projections table, O(1) reads)
+- ✅ Phase 3.1: Domain Refinements (exception hierarchy, DomainException per BC)
+- ✅ Phase 7: Shared Kernel (Money/Currency VOs + CurrencyMismatchException → Shared kernel)
 
-**What:** Replace sync Messenger dispatch in `AccountRepository.save()` with the Outbox Pattern: store events in an `outbox` table (same DBAL transaction as event store), then publish asynchronously via a background worker.
+---
 
-**Why:** Sync dispatch works for single-DB but won't survive a microservices split. The outbox pattern guarantees at-least-once delivery across DB boundaries.
+## Phase 4: Domain Services + Specification + Policy
 
-**Pros:** Crash-safe, works across DB boundaries, enables async projections.
+### MoneyTransferDomainService
+Extract business rules from TransferMoneySaga into Domain layer.
+Saga becomes pure orchestrator: load accounts → call domain service → save → dispatch events.
 
-**Cons:** Adds eventual consistency, infrastructure complexity (message broker, outbox worker).
+Location: src/Account/Domain/Service/MoneyTransferDomainService.php
 
-**Context:** Current sync approach is correct for this template's single-DB setup. See TODO comment in `AccountRepository.save()`.
+Rules to move from TransferMoneySaga:
+- same-account transfer check
+- currency match between accounts
+- amount currency match
 
-**Depends on:** Phase 4a (projections) — completed
+### TransferLimitPolicy
+Policy Pattern — business rule for transfer limits.
+Example: daily transfer limit per account.
 
-## Phase 6: Full Saga Pattern
+Location: src/Account/Domain/Policy/TransferLimitPolicy.php
 
-### Saga state machine with compensating transactions
+Teaches: difference between Domain Service (coordinates aggregates)
+and Policy (encapsulates a business rule/decision).
 
-**What:** Evolve `TransferMoneySaga` toward a microservices-ready saga pattern with explicit saga state machine, idempotency keys, and compensation steps as first-class concepts.
+### AccountSpecification
+Specification Pattern — composable business rules for account eligibility.
+Example: AccountCanReceiveTransferSpecification.
 
-**Why:** The current saga uses DBAL transaction wrapping for ACID guarantees (correct for single-DB). In a distributed system with separate databases per bounded context, you need compensating events instead. A full saga pattern has explicit states (PENDING, WITHDRAWING, DEPOSITING, COMPLETING, COMPENSATING, FAILED) and can resume from any state after a crash.
+Location: src/Account/Domain/Specification/AccountSpecification.php
 
-**Pros:** Crash-resilient, resumable, production-grade pattern for distributed systems.
+Teaches: how Specification differs from validation (reusable, composable,
+expressible in domain language).
 
-**Cons:** Significant complexity. Currently overkill for a single-DB learning template.
+ADR: docs/architecture/decisions/003-domain-services-patterns.md
 
-**Context:** Current implementation handles the happy path with DBAL transaction wrapping and documents where compensation would be needed in a distributed system (code comments in TransferMoneySaga). Full saga adds state persistence and resumability.
+---
 
-**Depends on:** Phase 2.5 (ES migration) — completed
+## Phase 5: Integration Events
 
-## UI Layer
+### Separate Domain Events from Integration Events
+Problem: TransactionCreated/Completed/FailedEvent are Domain Events
+but dispatched via Messenger to Notification BC as Integration Events — violation.
+Notification BC currently depends on Transaction domain model.
 
-### Smoke tests for console commands and HealthController
+What to add:
+- src/Shared/Infrastructure/Integration/Event/TransactionCreatedIntegrationEvent.php
+- src/Shared/Infrastructure/Integration/Event/TransactionCompletedIntegrationEvent.php
+- src/Shared/Infrastructure/Integration/Event/TransactionFailedIntegrationEvent.php
+- Mapper: DomainEvent → IntegrationEvent in Infrastructure layer
 
-**What:** Integration tests that verify each of the 10 console commands runs without error (exit code 0 with valid args) and HealthController endpoints return 200.
+Teaches: Domain Events (internal, past tense, domain language) vs
+Integration Events (public contract, cross-BC, stable interface).
+Published Language strategic pattern implemented here.
 
-**Why:** All CLI and HTTP entry points have zero test coverage. The underlying CQRS handlers are fully tested, but DI wiring and argument parsing are not. A misconfigured service binding would only surface at runtime.
+ADR: docs/architecture/decisions/004-integration-events-separation.md
 
-**Cons:** Requires Symfony kernel boot in tests (integration test setup).
+---
 
-**Context:** These are thin wrappers around CQRS handlers. Risk is low but not zero.
+## Phase 6: User BC completion
 
-**Depends on:** None
+### Delete ES dead code
+User BC stays CRUD permanently. Account BC is the ES showcase.
+
+Remove:
+- src/User/Domain/Entity/EventSourcedUser.php
+- src/User/Domain/Repository/EventSourcedUserRepositoryInterface.php
+- src/User/Infrastructure/Repository/EventSourcedUserRepository.php
+- src/User/Application/Handler/EventSourcedCreateUserHandler.php
+- src/User/Application/Handler/EventSourcedChangeUserEmailHandler.php
+- src/UI/Console/CreateUserEventSourcedConsoleCommand.php
+
+### HTTP API endpoints for User BC
+Pattern: follow Notification BC (Infrastructure/ApiPlatform/Dto + StateProcessor + StateProvider)
+
+Endpoints:
+- POST   /api/users              — create user
+- GET    /api/users/{id}         — get user profile
+- PUT    /api/users/{id}/email   — change email
+- DELETE /api/users/{id}         — delete user
 
 ### Distribute console commands to bounded contexts
+Move from src/UI/Console/ into owning BC Infrastructure/Console/.
+Cross-context commands (e.g. GetUserInfoConsoleCommand) stay in src/UI/Console/.
 
-**What:** Move each console command from `src/UI/Console/` into its owning bounded context's `Infrastructure/Console/` directory (e.g., `DepositMoneyConsoleCommand` → `Account/Infrastructure/Console/`).
+### Smoke tests
+Integration tests:
+- All console commands — exit code 0 with valid args
+- HealthController endpoints — HTTP 200
 
-**Why:** API Platform processors already live inside bounded contexts. Console commands should follow the same pattern for hexagonal architecture consistency.
+---
 
-**Cons:** Cross-context commands (e.g., `GetUserInfoConsoleCommand` reads User+Account data) need a home — likely stays in `UI/Console/` or goes to a shared query namespace.
+## Phase 7+: Microservices prep (deferred)
 
-**Context:** The flat `UI/Console/` grouping was chosen as the first step. Distribution is a follow-up architectural decision.
-
-**Depends on:** UI layer restructuring — completed
-
-## Shared Kernel
-
-### Move Money/Currency VOs to Shared kernel
-
-**What:** Move `Money` and `Currency` value objects from `Account/Domain/ValueObject/` to `Shared/Domain/ValueObject/`. Update all imports across bounded contexts.
-
-**Why:** Money and Currency are used across multiple BCs (Account, Transaction). They currently live in Account BC, creating a cross-BC dependency. Shared kernel is the correct location for cross-BC value objects.
-
-**Cons:** Large blast radius — every file importing Money/Currency needs an import update. Also requires moving `CurrencyMismatchException` to Shared (it depends on Currency VO).
-
-**Context:** Deferred from the domain refinements PR to keep scope manageable. When moved, `CurrencyMismatchException` can also move to Shared kernel.
-
-**Depends on:** None
-
-### Rename EventSourcedUserRepositoryInterface → UserRepositoryInterface
-
-**What:** Rename `EventSourcedUserRepositoryInterface` to `UserRepositoryInterface` and `EventSourcedUserRepository` to `UserRepository` in the User bounded context. Update `config/services.yaml` wiring.
-
-**Why:** Same naming inconsistency that was fixed in Account BC. The `EventSourced` prefix leaks implementation details into the domain layer.
-
-**Context:** Follow the same pattern used in the Account BC rename (no migration needed — event_type stores event FQCNs, not aggregate/repository names).
-
-**Depends on:** None
+Implement when splitting BCs into separate services:
+- Outbox Pattern (at-least-once delivery across DB boundaries)
+- Full Saga Pattern (state machine: PENDING→WITHDRAWING→DEPOSITING→COMPLETING→FAILED,
+  compensating transactions, idempotency keys)
+- CDC (Change Data Capture)
+- Microservices split: account-service, user-service, transaction-service, notification-service
