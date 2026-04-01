@@ -254,12 +254,7 @@ test-integration: ## Run integration tests
 test-coverage: ## Run tests with coverage
 	@$(DOCKER_PHP) vendor/bin/phpunit --coverage-html var/coverage
 
-##@ Event Sourcing
-
-.PHONY: es-test
-es-test: ## Test Event Sourcing implementation
-	@echo -e "$(BLUE)Testing Event Sourcing...$(NC)"
-	@$(DOCKER_PHP) bin/console app:test-event-sourcing
+##@ CLI Shortcuts
 
 .PHONY: user-create
 user-create: ## Create user (use: make user-create EMAIL=test@example.com PASS=password)

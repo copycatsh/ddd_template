@@ -8,12 +8,15 @@
 ```
 {Context}/
 ├── Domain/
-│   ├── Entity/         # Aggregates (CRUD + EventSourced variants)
+│   ├── Entity/         # Aggregates
 │   ├── ValueObject/    # Immutable value objects
 │   ├── Event/          # Domain events
 │   ├── Exception/      # Domain exceptions
 │   ├── Repository/     # Write repository interfaces (Ports)
-│   └── Port/           # Read-model query interfaces (Ports)
+│   ├── Port/           # Read-model query interfaces + data DTOs (Ports)
+│   ├── Service/        # Domain services (pure domain logic)
+│   ├── Specification/  # Composable business rules
+│   └── Policy/         # Enforceable business policies
 ├── Application/
 │   ├── Command/        # Write-side commands
 │   ├── Handler/        # Command & query handlers
@@ -21,6 +24,10 @@
 │   └── Saga/           # Multi-step orchestrations
 └── Infrastructure/
     ├── Repository/     # Doctrine implementations (Adapters)
+    ├── Console/        # Symfony Console commands (CLI driving adapters)
+    ├── Security/       # Security infrastructure adapters
+    ├── Query/          # DBAL query adapters for domain ports
+    ├── Projection/     # Event-driven read model projections
     └── ApiPlatform/    # State Processors (commands) + State Providers (queries) + DTOs
 ```
 
@@ -42,17 +49,24 @@ Domain exceptions are mapped to HTTP responses by `DomainExceptionSubscriber` (`
 
 ## Implementation Pattern
 
-- **Account context** — Event Sourced only. `Account` aggregate with state reconstructed by replaying events from `event_store` table. All API and CLI endpoints use ES handlers.
-- **User context** — Dual implementation: CRUD (`User`, `DoctrineUserRepository`) + ES (`EventSourcedUser`, `EventSourcedUserRepository`). CRUD is active; ES handlers exist but are not exposed via API.
+- **Account context** — Event Sourced. `Account` aggregate with state reconstructed by replaying events from `event_store` table. Read queries use `account_projections` table for O(1) lookups.
+- **User context** — CRUD only. `User` entity with Doctrine ORM. Domain events (`UserCreatedEvent`, `UserEmailChangedEvent`) dispatched via `DomainEventsTrait` and Messenger.
 - **Transaction context** — CRUD only (`Transaction`, `DoctrineTransactionRepository`). Not an ES aggregate.
-- **Notification context** — CRUD only (`NotificationLog`). Log entity, not an aggregate.
+- **Notification context** — CRUD only (`NotificationLog`). Consumes Integration Events from Transaction BC.
 
-## Event Sourcing
+## Event Sourcing (Account BC)
 
 `AbstractAggregateRoot` (`src/Shared/Domain/Aggregate/`) is the base for event-sourced aggregates:
 1. Domain method calls `$this->recordEvent(new SomeDomainEvent(...))`
-2. `recordEvent` immediately calls `apply{EventClassName}()` to mutate state
-3. Repository saves pending events via `DoctrineEventStore`
+2. `recordEvent` stores the event via `DomainEventsTrait`, then calls `apply{EventClassName}()` to mutate state
+3. Repository saves pending events via `DoctrineEventStore` and dispatches via Messenger
+
+## Domain Events for CRUD Entities (User BC)
+
+`DomainEventsTrait` (`src/Shared/Domain/Event/`) provides event collection for non-ES entities:
+1. Entity calls `$this->recordEvent(new SomeDomainEvent(...))`
+2. Events accumulate until repository save
+3. Repository dispatches events via Messenger inside a DBAL transaction, then calls `markEventsAsCommitted()`
 
 ---
 
@@ -78,8 +92,6 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 **Repository Interfaces** (`Domain/Repository/`)
 - `AccountRepositoryInterface` — `save`, `findById`
 
-> Note: `findByUserId` and `findByUserIdAndCurrency` currently scan all events (no indexing). ES Projections (Phase 4a) will replace this with indexed read-model queries.
-
 **Commands** (`Application/Command/`)
 - `CreateAccountCommand`, `DepositMoneyCommand`, `WithdrawMoneyCommand`, `TransferMoneyCommand`
 
@@ -92,15 +104,15 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 
 | Handler | Type | Description |
 |---|---|---|
-| `CreateAccountHandler` | Command | Creates ES account, checks uniqueness |
+| `CreateAccountHandler` | Command | Creates ES account, checks uniqueness via projection |
 | `DepositMoneyHandler` | Command | Deposits via ES aggregate |
 | `WithdrawMoneyHandler` | Command | Withdraws via ES aggregate |
-| `GetAccountBalanceHandler` | Query | Reconstitutes from events, returns balance |
-| `GetUserAccountsHandler` | Query | Lists user's accounts from event store |
+| `GetAccountBalanceHandler` | Query | Reads from projection table |
+| `GetUserAccountsHandler` | Query | Lists user's accounts from projection table |
 | `GetAccountTransactionsHandler` | Query | Reads from Transaction context (DBAL) |
 
 **Sagas** (`Application/Saga/`)
-- `TransferMoneySaga` — pure orchestrator for fund transfers. Delegates business rule validation to `MoneyTransferDomainService`, then executes: creates Transaction (PENDING), withdraws from source, deposits to destination, marks COMPLETED. All saves wrapped in a single DBAL transaction for ACID guarantees.
+- `TransferMoneySaga` — pure orchestrator for fund transfers. Delegates business rule validation to `MoneyTransferDomainService`, then executes: creates Transaction (PENDING), withdraws from source, deposits to destination, marks COMPLETED. Dispatches Integration Events via `IntegrationEventMapper`. All saves wrapped in a single DBAL transaction for ACID guarantees.
 
 **Domain Services** (`Domain/Service/`)
 - `MoneyTransferDomainService` — validates transfer eligibility via Specification composite + Policy enforcement. Pure domain, no infrastructure dependencies.
@@ -119,16 +131,21 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 - `TransferLimitPolicy` — enforces daily transfer limit per account. Reads transfer history via `TransferActivityQuery` port. UTC timezone, configurable limit.
 
 **Ports** (`Domain/Port/`)
-- `AccountProjectionQuery` / `AccountProjectionData` — read-model queries for account projections
+- `AccountProjectionQuery` / `AccountProjectionData` — read-model queries for account projections (O(1) via `account_projections` table)
 - `TransferActivityQuery` / `TransferActivityData` — read-only access to daily transfer activity for policy enforcement
 
 **Infrastructure** (`Infrastructure/`)
-- `AccountRepository` — wraps `EventStoreInterface`; persists and reconstitutes aggregates from event store
+- `AccountRepository` — wraps `EventStoreInterface`; persists and reconstitutes aggregates from event store. Dispatches events via Messenger inside DBAL transaction.
 - `Query/DoctrineTransferActivityQuery` — DBAL adapter for `TransferActivityQuery` port. Queries COMPLETED transfers from transactions table.
 - API Platform resource: `AccountResource` — DTO with `#[ApiResource]` annotations defining all routes
 - API Platform processors: `CreateAccount`, `DepositMoney`, `WithdrawMoney`, `TransferMoney` — call ES handlers, return `AccountResource`
 - API Platform providers: `AccountBalance`, `UserAccounts`, `AccountTransactions`
 - DTOs: `CreateAccountDto`, `MoneyOperationDto`, `TransferMoneyDto`
+
+**Console commands** (`Infrastructure/Console/`)
+- `app:deposit-money`, `app:withdraw-money`, `app:transfer-money`
+- `app:get-account-balance`, `app:get-user-accounts`, `app:account:transactions`
+- `app:rebuild-account-projections`
 
 **Projections** (`Infrastructure/Projection/`)
 - `AccountProjectionHandler` — Messenger handler that updates `account_projections` table on `AccountCreated/MoneyDeposited/MoneyWithdrawn` events (sync transport, atomic with event store)
@@ -141,22 +158,25 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 ## Bounded Context: User
 
 **Entities** (`Domain/Entity/`)
-- `User` — CRUD aggregate, Doctrine ORM entity. Implements Symfony `UserInterface` + `PasswordAuthenticatedUserInterface`. Constructor takes `Email` VO. Supports `changeEmail(Email)` with same-email guard.
+- `User` — CRUD entity, Doctrine ORM. Implements Symfony `UserInterface` + `PasswordAuthenticatedUserInterface`. Uses `DomainEventsTrait` for domain event collection. Private constructor; created via `User::create()` static factory which records `UserCreatedEvent`. `changeEmail(Email)` records `UserEmailChangedEvent`.
 
 **Value Objects** (`Domain/ValueObject/`)
 - `Email` — `final readonly`; validates via `FILTER_VALIDATE_EMAIL`, normalises to lowercase
 - `UserRole` — backed enum: `USER = 'ROLE_USER'`, `ADMIN = 'ROLE_ADMIN'`
 
 **Domain Events** (`Domain/Event/`)
-- `UserCreatedEvent` — `userId`, `email`, `hashedPassword`, `UserRole`
+- `UserCreatedEvent` — `userId`, `email`, `UserRole`
 - `UserEmailChangedEvent` — `userId`, `oldEmail`, `newEmail`
 
-> Events exist but are **not dispatched** from CRUD handlers. Wiring deferred to Phase 6.1.
+Events are dispatched via `DoctrineUserRepository` using Messenger (sync transport).
 
 **Domain Exceptions** (`Domain/Exception/`)
 - `UserAlreadyExistsException` → 409
 - `UserNotFoundException` → 404
 - `InvalidCredentialsException` → 401
+
+**Ports** (`Domain/Port/`)
+- `PasswordHasherInterface` — domain port for password hashing (`hash(string): string`). Infrastructure adapter: `SymfonyPasswordHasher` wraps Symfony's `PasswordHasherFactoryInterface`.
 
 **Repository Interfaces** (`Domain/Repository/`)
 - `UserRepositoryInterface` — `save`, `findById`, `findByEmail`, `delete`
@@ -167,12 +187,15 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 - `DeleteUserCommand` — `userId`
 
 **Handlers** (`Application/Handler/`)
-- `CreateUserHandler` — hashes password via `UserPasswordHasherInterface`
+- `CreateUserHandler` — hashes password via `PasswordHasherInterface` domain port, creates user via `User::create()` factory
 - `ChangeUserEmailHandler` — validates user exists + email unique, delegates to `User::changeEmail()`
 - `DeleteUserHandler` — validates user exists, delegates to `UserRepositoryInterface::delete()`
 
 **Infrastructure** (`Infrastructure/Repository/`)
-- `DoctrineUserRepository`
+- `DoctrineUserRepository` — persists via Doctrine ORM, dispatches domain events via `MessageBusInterface` inside DBAL transaction
+
+**Infrastructure** (`Infrastructure/Security/`)
+- `SymfonyPasswordHasher` — adapter implementing `PasswordHasherInterface`, wraps `PasswordHasherFactoryInterface`
 
 **Infrastructure** (`Infrastructure/ApiPlatform/`)
 - `Resource/UserResource` — output DTO with `fromUser()` factory
@@ -182,10 +205,8 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 - `StateProvider/GetUserStateProvider`
 - Delete endpoint guards against orphaned accounts via `GetUserAccountsHandler`
 
-**Infrastructure** (`Infrastructure/Console/`)
-- `CreateUserConsoleCommand` — `app:create-user`
-- `ChangeUserEmailConsoleCommand` — `app:user:change-email`
-- `GetUserInfoConsoleCommand` — `app:user:info`
+**Console commands** (`Infrastructure/Console/`)
+- `app:create-user`, `app:user:change-email`, `app:user:info`
 
 ---
 
@@ -199,8 +220,6 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 - `TransactionType` — backed enum: `DEPOSIT`, `WITHDRAWAL`, `TRANSFER`
 
 **Domain Events** (`Domain/Event/`)
-> These exist but are **never dispatched**. Wiring them through Messenger is pending (Notification context Task 11).
-
 > These events are internal to Transaction BC. Cross-BC consumers receive
 > Integration Events (`Shared/Integration/Event/`) via IntegrationEventMapper.
 
@@ -224,14 +243,17 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 
 ## Bounded Context: Notification
 
-> **Status:** Domain layer only. Application and Infrastructure layers pending (Tasks 4–12).
-> **Branch:** `feature/notification-bounded-context` (worktree: `.worktrees/notification`)
-
-> Handlers consume **Integration Events** (`Shared/Integration/Event/`),
+> Consumes **Integration Events** (`Shared/Integration/Event/`),
 > not Transaction domain events. This decouples Notification from Transaction BC.
 
 **Entities** (`Domain/Entity/`)
 - `NotificationLog` — Doctrine ORM entity (`notification_log` table). Records sent notifications: `transactionId`, `accountId`, `userId`, `recipientEmail`, `notificationType`, `sentAt`.
+
+**Value Objects** (`Domain/ValueObject/`)
+- `NotificationType` — backed enum for notification types
+
+**Domain Exceptions** (`Domain/Exception/`)
+- `NotificationException`
 
 **Repository Interfaces** (`Domain/Repository/`)
 - `NotificationLogRepositoryInterface` — `save(NotificationLog): void`
@@ -240,6 +262,24 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 Anti-corruption layer — read-only cross-context access without depending on User/Account domain models.
 - `NotificationUserQuery` / `NotificationUserData` (`userId`, `email`)
 - `NotificationAccountQuery` / `NotificationAccountData` (`accountId`, `userId`, `currency`)
+- `NotificationHistoryQuery` / `NotificationHistoryData` — read-only notification history
+
+**Handlers** (`Application/Handler/`)
+- `TransactionCreatedNotificationHandler` — handles `TransactionCreatedIntegrationEvent`
+- `TransactionCompletedNotificationHandler` — handles `TransactionCompletedIntegrationEvent`
+- `TransactionFailedNotificationHandler` — handles `TransactionFailedIntegrationEvent`
+- `GetNotificationHistoryHandler` — query handler
+
+**Queries** (`Application/Query/`)
+- `GetNotificationHistoryQuery` → `NotificationHistoryResponse` (wraps `NotificationHistoryItem[]`)
+
+**Infrastructure** (`Infrastructure/`)
+- `DoctrineNotificationLogRepository` — Doctrine ORM adapter
+- `Query/DoctrineNotificationUserQuery` — raw DBAL, no User domain dependency
+- `Query/DoctrineNotificationAccountQuery` — raw DBAL, no Account domain dependency
+- `Query/DoctrineNotificationHistoryQuery` — DBAL adapter for `NotificationHistoryQuery` port
+- `ApiPlatform/StateProvider/NotificationHistoryStateProvider` — API endpoint for notification history
+- `ApiPlatform/Dto/NotificationHistoryDto` — output DTO
 
 ---
 
@@ -255,7 +295,7 @@ Integration events decouple cross-BC communication from domain models.
 **Mapper** (`Shared/Integration/`)
 - `IntegrationEventMapperInterface` / `IntegrationEventMapper` — translates Transaction domain events to integration event DTOs
 
-**Flow:** TransferMoneySaga creates domain events → IntegrationEventMapper.map() → integration event DTOs → Messenger dispatch → Notification handlers
+**Flow:** TransferMoneySaga calls `IntegrationEventMapper.map()` with domain events → integration event DTOs → Messenger dispatch (sync) → Notification handlers
 
 Domain Events (Transaction BC internal) vs Integration Events (cross-BC public contract). See ADR 004 for rationale.
 
@@ -265,11 +305,12 @@ Domain Events (Transaction BC internal) vs Integration Events (cross-BC public c
 
 **Aggregate base** (`Domain/Aggregate/`)
 - `AggregateRootInterface` — contract: `getId`, `getVersion`, `getUncommittedEvents`, `markEventsAsCommitted`, `applyEvent`
-- `AbstractAggregateRoot` — `recordEvent()` appends to `$uncommittedEvents` and calls `apply{EventClassName}()` via reflection. `reconstitute()` replays events without constructor.
+- `AbstractAggregateRoot` — uses `DomainEventsTrait` for event collection. Overrides `recordEvent()` to also call `apply{EventClassName}()` via reflection. `reconstitute()` replays events without constructor.
 
-**Domain event base** (`Domain/Event/`)
+**Domain event infrastructure** (`Domain/Event/`)
 - `DomainEventInterface` — contract: `getAggregateId`, `getEventType`, `getOccurredAt`, `getEventData`, `getVersion`
 - `AbstractDomainEvent` — base class implementing `DomainEventInterface`. Sets `occurredAt = now()`, `version = 1`. Subclasses implement `getAggregateId()` and `getEventData()`.
+- `DomainEventsTrait` — reusable trait for domain event collection. Provides `recordEvent()`, `getUncommittedEvents()`, `markEventsAsCommitted()`. Used by both `AbstractAggregateRoot` (ES) and `User` entity (CRUD).
 
 **Value Objects** (`Domain/ValueObject/`)
 - `Currency` — backed enum (`UAH`, `USD`) with equality helper
@@ -296,13 +337,13 @@ Domain Events (Transaction BC internal) vs Integration Events (cross-BC public c
 
 ## UI Layer (`src/UI/`)
 
-Presentation-layer entry points, grouped by port type (Hexagonal Architecture "driving adapters").
+Minimal presentation-layer entry points outside bounded contexts.
 
 **`src/UI/Http/`** — HTTP controllers:
 - `HealthController` — `GET /health`, `GET /`
 
-**`src/UI/Console/`** — Symfony Console commands wrapping DDD handlers (CLI entry points):
-`CreateUser`, `CreateUserEventSourced`, `ChangeUserEmail`, `DepositMoney`, `WithdrawMoney`, `TransferMoney`, `GetAccountBalance`, `GetUserAccounts`, `GetAccountTransactions`, `GetUserInfo`
+> Console commands live inside each BC's `Infrastructure/Console/` directory (not in `src/UI/`).
+> API endpoints are defined via API Platform in each BC's `Infrastructure/ApiPlatform/`.
 
 **`src/DataFixtures/`** — Doctrine fixtures: `UserFixtures`, `AccountFixtures`, `AppFixtures`
 
@@ -310,6 +351,8 @@ Presentation-layer entry points, grouped by port type (Hexagonal Architecture "d
 
 ## Architectural Notes
 
-1. **Transaction events dispatched** — `TransferMoneySaga` dispatches `TransactionCreated/Completed/FailedEvent` via Messenger after transfer operations.
+1. **Transaction events dispatched via Integration Events** — `TransferMoneySaga` creates Transaction domain events, maps them to Integration Events via `IntegrationEventMapper`, and dispatches via Messenger. Notification handlers consume the Integration Events.
 2. **Account context is ES-only** — CRUD Account entity and handlers were removed in Phase 2.5. All Account operations go through the event store.
-3. **ES read performance** — Account reads use projections (`account_projections` table) for O(1) queries. Projections are updated synchronously on every event via Messenger. Use `app:rebuild-account-projections` to rebuild from event store.
+3. **User context is CRUD-only** — ES User entity and handlers were removed in Phase 6. Domain events are dispatched via `DomainEventsTrait` + `DoctrineUserRepository`.
+4. **ES read performance** — Account reads use projections (`account_projections` table) for O(1) queries. Projections are updated synchronously on every event via Messenger. Use `app:rebuild-account-projections` to rebuild from event store.
+5. **Messenger configuration** — All event routing uses sync transport. Bus configured with `allow_no_handlers: true` to support events without subscribers yet.
