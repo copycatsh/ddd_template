@@ -8,23 +8,23 @@ use App\User\Application\Command\CreateUserCommand;
 use App\User\Application\Handler\CreateUserHandler;
 use App\User\Domain\Entity\User;
 use App\User\Domain\Exception\UserAlreadyExistsException;
+use App\User\Domain\Port\PasswordHasherInterface;
 use App\User\Domain\Repository\UserRepositoryInterface;
 use App\User\Domain\ValueObject\Email;
 use App\User\Domain\ValueObject\UserRole;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 class CreateUserHandlerTest extends TestCase
 {
     private UserRepositoryInterface&MockObject $userRepository;
-    private UserPasswordHasherInterface&MockObject $passwordHasher;
+    private PasswordHasherInterface&MockObject $passwordHasher;
     private CreateUserHandler $handler;
 
     protected function setUp(): void
     {
         $this->userRepository = $this->createMock(UserRepositoryInterface::class);
-        $this->passwordHasher = $this->createMock(UserPasswordHasherInterface::class);
+        $this->passwordHasher = $this->createMock(PasswordHasherInterface::class);
         $this->handler = new CreateUserHandler($this->userRepository, $this->passwordHasher);
     }
 
@@ -40,7 +40,8 @@ class CreateUserHandlerTest extends TestCase
 
         $this->passwordHasher
             ->expects($this->once())
-            ->method('hashPassword')
+            ->method('hash')
+            ->with('password123')
             ->willReturn('hashed-password');
 
         $this->userRepository
@@ -59,7 +60,7 @@ class CreateUserHandlerTest extends TestCase
 
     public function testHandleThrowsWhenUserAlreadyExists(): void
     {
-        $existingUser = new User('existing-id', new Email('test@example.com'), 'hashed');
+        $existingUser = User::create('existing-id', new Email('test@example.com'), 'hashed');
         $command = new CreateUserCommand('test@example.com', 'password123');
 
         $this->userRepository

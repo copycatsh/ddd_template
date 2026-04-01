@@ -27,7 +27,7 @@ class DeleteUserHandlerTest extends TestCase
 
     public function testHandleDeletesUser(): void
     {
-        $user = new User('user-1', new Email('test@example.com'), 'hashed-pwd', UserRole::USER);
+        $user = User::create('user-1', new Email('test@example.com'), 'hashed-pwd', UserRole::USER);
         $command = new DeleteUserCommand('user-1');
 
         $this->userRepository

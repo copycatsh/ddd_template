@@ -2,6 +2,9 @@
 
 namespace App\User\Domain\Entity;
 
+use App\Shared\Domain\Event\DomainEventsTrait;
+use App\User\Domain\Event\UserCreatedEvent;
+use App\User\Domain\Event\UserEmailChangedEvent;
 use App\User\Domain\Exception\SameEmailException;
 use App\User\Domain\ValueObject\Email;
 use App\User\Domain\ValueObject\UserRole;
@@ -13,6 +16,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[ORM\Table(name: 'users')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    use DomainEventsTrait;
+
     #[ORM\Id]
     #[ORM\Column(type: 'string', length: 50)]
     private string $id;
@@ -32,7 +37,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(string $id, Email $email, string $password, UserRole $role = UserRole::USER)
+    private function __construct(string $id, Email $email, string $password, UserRole $role = UserRole::USER)
     {
         $this->id = $id;
         $this->email = $email->getValue();
@@ -42,14 +47,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->updatedAt = new \DateTimeImmutable();
     }
 
+    public static function create(string $id, Email $email, string $hashedPassword, UserRole $role = UserRole::USER): self
+    {
+        $user = new self($id, $email, $hashedPassword, $role);
+        $user->recordEvent(new UserCreatedEvent($id, $email->getValue(), $role));
+
+        return $user;
+    }
+
     public function changeEmail(Email $newEmail): void
     {
         if ($this->getEmail()->equals($newEmail)) {
             throw SameEmailException::create();
         }
 
+        $oldEmail = $this->getEmail();
         $this->email = $newEmail->getValue();
         $this->updatedAt = new \DateTimeImmutable();
+
+        $this->recordEvent(new UserEmailChangedEvent($this->id, $oldEmail, $newEmail));
     }
 
     public function getId(): string

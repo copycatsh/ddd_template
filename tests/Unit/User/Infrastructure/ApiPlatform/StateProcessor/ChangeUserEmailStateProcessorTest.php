@@ -34,7 +34,7 @@ class ChangeUserEmailStateProcessorTest extends TestCase
         $dto = new ChangeUserEmailDto();
         $dto->email = 'new@example.com';
 
-        $updatedUser = new User('user-1', new Email('new@example.com'), 'hashed', UserRole::USER);
+        $updatedUser = User::create('user-1', new Email('new@example.com'), 'hashed', UserRole::USER);
 
         $this->handler
             ->expects($this->once())

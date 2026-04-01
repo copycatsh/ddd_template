@@ -5,16 +5,16 @@ namespace App\User\Application\Handler;
 use App\User\Application\Command\CreateUserCommand;
 use App\User\Domain\Entity\User;
 use App\User\Domain\Exception\UserAlreadyExistsException;
+use App\User\Domain\Port\PasswordHasherInterface;
 use App\User\Domain\Repository\UserRepositoryInterface;
 use App\User\Domain\ValueObject\Email;
-use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Uid\Uuid;
 
 class CreateUserHandler
 {
     public function __construct(
         private UserRepositoryInterface $userRepository,
-        private UserPasswordHasherInterface $passwordHasher,
+        private PasswordHasherInterface $passwordHasher,
     ) {
     }
 
@@ -27,12 +27,9 @@ class CreateUserHandler
 
         $userId = Uuid::v4()->toRfc4122();
         $email = new Email($command->getEmail());
+        $hashedPassword = $this->passwordHasher->hash($command->getPassword());
 
-        $user = new User($userId, $email, '', $command->getRole());
-
-        $hashedPassword = $this->passwordHasher->hashPassword($user, $command->getPassword());
-
-        $user = new User($userId, $email, $hashedPassword, $command->getRole());
+        $user = User::create($userId, $email, $hashedPassword, $command->getRole());
 
         $this->userRepository->save($user);
 
