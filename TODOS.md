@@ -11,22 +11,7 @@
 - ✅ Phase 4: Domain Services + Specification + Policy
 - ✅ Phase 5: Integration Events
 - ✅ Phase 6: User BC completion (delete ES dead code, HTTP API, console command distribution, smoke tests)
-
----
-
----
-
-## Phase 6.1: User BC polish (deferred)
-
-### Fix double-create in CreateUserHandler
-CreateUserHandler (src/User/Application/Handler/CreateUserHandler.php) creates
-User entity twice — first with empty password, then with hashed password — because
-Symfony PasswordHasher needs UserInterface. Fix with static factory or private setter.
-
-### Wire domain events from CRUD User handlers
-UserCreatedEvent and UserEmailChangedEvent exist but are never dispatched from CRUD
-handlers. Wire event dispatch in CreateUserHandler and ChangeUserEmailHandler so other
-BCs can subscribe to User state changes.
+- ✅ Phase 6.1: User BC polish (static factory, domain event dispatch via DomainEventsTrait, PasswordHasher port)
 
 ---
 

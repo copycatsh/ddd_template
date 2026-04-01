@@ -12,6 +12,10 @@ services:
             - '../src/Entity/'
             - '../src/Kernel.php'
 
+    # Port interfaces
+    App\User\Domain\Port\PasswordHasherInterface:
+        alias: App\User\Infrastructure\Security\SymfonyPasswordHasher
+
     # Repository interfaces
     App\User\Domain\Repository\UserRepositoryInterface:
         alias: App\User\Infrastructure\Repository\DoctrineUserRepository

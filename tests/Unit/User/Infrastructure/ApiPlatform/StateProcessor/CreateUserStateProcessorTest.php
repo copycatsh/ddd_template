@@ -36,7 +36,7 @@ class CreateUserStateProcessorTest extends TestCase
         $dto->password = 'password123';
         $dto->role = 'USER';
 
-        $user = new User('user-1', new Email('test@example.com'), 'hashed', UserRole::USER);
+        $user = User::create('user-1', new Email('test@example.com'), 'hashed', UserRole::USER);
 
         $this->handler
             ->expects($this->once())

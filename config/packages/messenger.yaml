@@ -1,5 +1,11 @@
 framework:
     messenger:
+        default_bus: messenger.bus.default
+        buses:
+            messenger.bus.default:
+                default_middleware:
+                    allow_no_handlers: true
+
         transports:
             sync: 'sync://'
 
@@ -10,3 +16,5 @@ framework:
             App\Account\Domain\Event\AccountCreatedEvent: sync
             App\Account\Domain\Event\MoneyDepositedEvent: sync
             App\Account\Domain\Event\MoneyWithdrawnEvent: sync
+            App\User\Domain\Event\UserCreatedEvent: sync
+            App\User\Domain\Event\UserEmailChangedEvent: sync

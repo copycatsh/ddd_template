@@ -28,7 +28,7 @@ class ChangeUserEmailHandlerTest extends TestCase
 
     public function testHandleChangesEmail(): void
     {
-        $user = new User('user-1', new Email('old@example.com'), 'hashed-pwd', UserRole::USER);
+        $user = User::create('user-1', new Email('old@example.com'), 'hashed-pwd', UserRole::USER);
         $newEmail = new Email('new@example.com');
         $command = new ChangeUserEmailCommand('user-1', $newEmail);
 
@@ -71,8 +71,8 @@ class ChangeUserEmailHandlerTest extends TestCase
 
     public function testHandleThrowsWhenEmailAlreadyTaken(): void
     {
-        $existingUser = new User('user-2', new Email('taken@example.com'), 'hashed-pwd');
-        $user = new User('user-1', new Email('old@example.com'), 'hashed-pwd');
+        $existingUser = User::create('user-2', new Email('taken@example.com'), 'hashed-pwd');
+        $user = User::create('user-1', new Email('old@example.com'), 'hashed-pwd');
         $command = new ChangeUserEmailCommand('user-1', new Email('taken@example.com'));
 
         $this->userRepository

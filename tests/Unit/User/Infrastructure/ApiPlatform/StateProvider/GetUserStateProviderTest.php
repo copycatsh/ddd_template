@@ -28,7 +28,7 @@ class GetUserStateProviderTest extends TestCase
 
     public function testProvideReturnsUserResource(): void
     {
-        $user = new User('user-1', new Email('test@example.com'), 'hashed', UserRole::USER);
+        $user = User::create('user-1', new Email('test@example.com'), 'hashed', UserRole::USER);
 
         $this->userRepository
             ->expects($this->once())

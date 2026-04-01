@@ -6,10 +6,10 @@ namespace App\Tests\Unit\User\Infrastructure\ApiPlatform\StateProcessor;
 
 use ApiPlatform\Metadata\Delete;
 use App\Account\Application\Handler\GetUserAccountsHandler;
-use App\User\Domain\Exception\UserHasActiveAccountsException;
 use App\Account\Application\Query\Response\AccountSummary;
 use App\Account\Application\Query\Response\UserAccountsResponse;
 use App\User\Application\Handler\DeleteUserHandler;
+use App\User\Domain\Exception\UserHasActiveAccountsException;
 use App\User\Infrastructure\ApiPlatform\StateProcessor\DeleteUserStateProcessor;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;

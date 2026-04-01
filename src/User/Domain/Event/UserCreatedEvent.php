@@ -10,7 +10,6 @@ class UserCreatedEvent extends AbstractDomainEvent
     public function __construct(
         private string $userId,
         private string $email,
-        private string $hashedPassword,
         private UserRole $role,
     ) {
         parent::__construct();
@@ -31,11 +30,6 @@ class UserCreatedEvent extends AbstractDomainEvent
         return $this->email;
     }
 
-    public function getHashedPassword(): string
-    {
-        return $this->hashedPassword;
-    }
-
     public function getRole(): UserRole
     {
         return $this->role;
@@ -46,7 +40,6 @@ class UserCreatedEvent extends AbstractDomainEvent
         return [
             'userId' => $this->userId,
             'email' => $this->email,
-            'hashedPassword' => $this->hashedPassword,
             'role' => $this->role->value,
         ];
     }
