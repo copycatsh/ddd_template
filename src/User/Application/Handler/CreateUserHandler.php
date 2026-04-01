@@ -4,7 +4,9 @@ namespace App\User\Application\Handler;
 
 use App\User\Application\Command\CreateUserCommand;
 use App\User\Domain\Entity\User;
+use App\User\Domain\Exception\UserAlreadyExistsException;
 use App\User\Domain\Repository\UserRepositoryInterface;
+use App\User\Domain\ValueObject\Email;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 use Symfony\Component\Uid\Uuid;
 
@@ -18,32 +20,19 @@ class CreateUserHandler
 
     public function handle(CreateUserCommand $command): string
     {
-        // Check if user already exists
         $existingUser = $this->userRepository->findByEmail($command->getEmail());
         if ($existingUser) {
-            throw new \InvalidArgumentException('User with this email already exists');
+            throw UserAlreadyExistsException::withEmail($command->getEmail());
         }
 
         $userId = Uuid::v4()->toRfc4122();
+        $email = new Email($command->getEmail());
 
-        // Create user with temporary password
-        $user = new User(
-            $userId,
-            $command->getEmail(),
-            '',
-            $command->getRole()
-        );
+        $user = new User($userId, $email, '', $command->getRole());
 
-        // Hash password
         $hashedPassword = $this->passwordHasher->hashPassword($user, $command->getPassword());
 
-        // Create user with hashed password
-        $user = new User(
-            $userId,
-            $command->getEmail(),
-            $hashedPassword,
-            $command->getRole()
-        );
+        $user = new User($userId, $email, $hashedPassword, $command->getRole());
 
         $this->userRepository->save($user);
 

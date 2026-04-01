@@ -1,8 +1,8 @@
 <?php
 
-namespace App\UI\Console;
+namespace App\User\Infrastructure\Console;
 
-use App\User\Domain\Repository\EventSourcedUserRepositoryInterface;
+use App\User\Domain\Repository\UserRepositoryInterface;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -12,12 +12,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:user:info',
-    description: 'Show user information (from Event Store)',
+    description: 'Show user information',
 )]
 class GetUserInfoConsoleCommand extends Command
 {
     public function __construct(
-        private EventSourcedUserRepositoryInterface $userRepository,
+        private UserRepositoryInterface $userRepository,
     ) {
         parent::__construct();
     }
@@ -41,7 +41,7 @@ class GetUserInfoConsoleCommand extends Command
                 return Command::FAILURE;
             }
 
-            $io->title('User Information (from Event Store)');
+            $io->title('User Information');
 
             $io->table(
                 ['Property', 'Value'],
@@ -49,11 +49,10 @@ class GetUserInfoConsoleCommand extends Command
                     ['User ID', $user->getId()],
                     ['Email', $user->getEmail()->getValue()],
                     ['Role', $user->getRole()->value],
-                    ['Version', $user->getVersion()],
                 ]
             );
 
-            $io->success('User loaded from Event Store successfully!');
+            $io->success('User information loaded successfully.');
 
             return Command::SUCCESS;
         } catch (\Exception $e) {

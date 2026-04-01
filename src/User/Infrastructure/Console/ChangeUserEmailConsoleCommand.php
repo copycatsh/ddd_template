@@ -1,9 +1,9 @@
 <?php
 
-namespace App\UI\Console;
+namespace App\User\Infrastructure\Console;
 
 use App\User\Application\Command\ChangeUserEmailCommand;
-use App\User\Application\Handler\EventSourcedChangeUserEmailHandler;
+use App\User\Application\Handler\ChangeUserEmailHandler;
 use App\User\Domain\ValueObject\Email;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -14,12 +14,12 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[AsCommand(
     name: 'app:user:change-email',
-    description: 'Change user email via CQRS command (Event Sourcing)',
+    description: 'Change user email',
 )]
 class ChangeUserEmailConsoleCommand extends Command
 {
     public function __construct(
-        private EventSourcedChangeUserEmailHandler $handler,
+        private ChangeUserEmailHandler $handler,
     ) {
         parent::__construct();
     }
@@ -39,13 +39,9 @@ class ChangeUserEmailConsoleCommand extends Command
         $userId = $input->getArgument('userId');
         $newEmailString = $input->getArgument('newEmail');
 
-        $io->title('Changing User Email (Event Sourcing)');
-
         try {
             $newEmail = new Email($newEmailString);
-
             $command = new ChangeUserEmailCommand($userId, $newEmail);
-
             $this->handler->handle($command);
 
             $io->success([
@@ -53,8 +49,6 @@ class ChangeUserEmailConsoleCommand extends Command
                 "User ID: $userId",
                 "New Email: {$newEmail->getValue()}",
             ]);
-
-            $io->note('A UserEmailChangedEvent has been recorded in the Event Store.');
 
             return Command::SUCCESS;
         } catch (\InvalidArgumentException $e) {

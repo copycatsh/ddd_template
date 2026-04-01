@@ -1,6 +1,6 @@
 <?php
 
-namespace App\UI\Console;
+namespace App\Account\Infrastructure\Console;
 
 use App\Account\Application\Command\DepositMoneyCommand;
 use App\Account\Application\Handler\DepositMoneyHandler;

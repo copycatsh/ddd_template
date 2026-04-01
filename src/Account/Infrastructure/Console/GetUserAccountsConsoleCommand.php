@@ -1,6 +1,6 @@
 <?php
 
-namespace App\UI\Console;
+namespace App\Account\Infrastructure\Console;
 
 use App\Account\Application\Handler\GetUserAccountsHandler;
 use App\Account\Application\Query\GetUserAccountsQuery;

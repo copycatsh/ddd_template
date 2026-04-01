@@ -141,10 +141,7 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 ## Bounded Context: User
 
 **Entities** (`Domain/Entity/`)
-- `User` — CRUD aggregate, Doctrine ORM entity. Implements Symfony `UserInterface` + `PasswordAuthenticatedUserInterface`.
-- `EventSourcedUser` — ES aggregate. Supports `create()` and `changeEmail()`.
-
-> **Dead code:** ES layer (`EventSourcedUser`, `EventSourcedUserRepository`, `EventSourcedUserRepositoryInterface`, `EventSourcedCreateUserHandler`, `EventSourcedChangeUserEmailHandler`) is dead code — scheduled for removal in Phase 6.
+- `User` — CRUD aggregate, Doctrine ORM entity. Implements Symfony `UserInterface` + `PasswordAuthenticatedUserInterface`. Constructor takes `Email` VO. Supports `changeEmail(Email)` with same-email guard.
 
 **Value Objects** (`Domain/ValueObject/`)
 - `Email` — `final readonly`; validates via `FILTER_VALIDATE_EMAIL`, normalises to lowercase
@@ -154,25 +151,41 @@ Note: `InvalidAmountException`, `NegativeBalanceException`, and `CurrencyMismatc
 - `UserCreatedEvent` — `userId`, `email`, `hashedPassword`, `UserRole`
 - `UserEmailChangedEvent` — `userId`, `oldEmail`, `newEmail`
 
+> Events exist but are **not dispatched** from CRUD handlers. Wiring deferred to Phase 6.1.
+
 **Domain Exceptions** (`Domain/Exception/`)
 - `UserAlreadyExistsException` → 409
+- `UserNotFoundException` → 404
 - `InvalidCredentialsException` → 401
 
 **Repository Interfaces** (`Domain/Repository/`)
 - `UserRepositoryInterface` — `save`, `findById`, `findByEmail`, `delete`
-- `EventSourcedUserRepositoryInterface` — `save`, `findById`, `findByEmail`
 
 **Commands** (`Application/Command/`)
 - `CreateUserCommand` — `email`, `password`, `UserRole`
 - `ChangeUserEmailCommand` — `userId`, `Email`
+- `DeleteUserCommand` — `userId`
 
 **Handlers** (`Application/Handler/`)
-- `CreateUserHandler` — CRUD; hashes password via `UserPasswordHasherInterface`
-- `EventSourcedCreateUserHandler` — ES
-- `EventSourcedChangeUserEmailHandler` — ES
+- `CreateUserHandler` — hashes password via `UserPasswordHasherInterface`
+- `ChangeUserEmailHandler` — validates user exists + email unique, delegates to `User::changeEmail()`
+- `DeleteUserHandler` — validates user exists, delegates to `UserRepositoryInterface::delete()`
 
 **Infrastructure** (`Infrastructure/Repository/`)
-- `DoctrineUserRepository`, `EventSourcedUserRepository`
+- `DoctrineUserRepository`
+
+**Infrastructure** (`Infrastructure/ApiPlatform/`)
+- `Resource/UserResource` — output DTO with `fromUser()` factory
+- `Dto/CreateUserDto` — POST `/api/users` input (email, password, role)
+- `Dto/ChangeUserEmailDto` — PUT `/api/users/{id}/email` input (email)
+- `StateProcessor/CreateUserStateProcessor`, `ChangeUserEmailStateProcessor`, `DeleteUserStateProcessor`
+- `StateProvider/GetUserStateProvider`
+- Delete endpoint guards against orphaned accounts via `GetUserAccountsHandler`
+
+**Infrastructure** (`Infrastructure/Console/`)
+- `CreateUserConsoleCommand` — `app:create-user`
+- `ChangeUserEmailConsoleCommand` — `app:user:change-email`
+- `GetUserInfoConsoleCommand` — `app:user:info`
 
 ---
 
