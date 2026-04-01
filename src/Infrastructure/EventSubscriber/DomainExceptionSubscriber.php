@@ -13,6 +13,8 @@ use App\Shared\Domain\Exception\InvalidAmountException;
 use App\Shared\Domain\Exception\NegativeBalanceException;
 use App\User\Domain\Exception\InvalidCredentialsException;
 use App\User\Domain\Exception\UserAlreadyExistsException;
+use App\User\Domain\Exception\UserHasActiveAccountsException;
+use App\User\Domain\Exception\UserNotFoundException;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -35,12 +37,14 @@ class DomainExceptionSubscriber implements EventSubscriberInterface
         // Map Domain Exceptions to HTTP responses
         $response = match (true) {
             $exception instanceof AccountAlreadyExistsException,
-            $exception instanceof UserAlreadyExistsException => new JsonResponse(
+            $exception instanceof UserAlreadyExistsException,
+            $exception instanceof UserHasActiveAccountsException => new JsonResponse(
                 ['error' => $exception->getMessage()],
                 Response::HTTP_CONFLICT
             ),
 
-            $exception instanceof AccountNotFoundException => new JsonResponse(
+            $exception instanceof AccountNotFoundException,
+            $exception instanceof UserNotFoundException => new JsonResponse(
                 ['error' => $exception->getMessage()],
                 Response::HTTP_NOT_FOUND
             ),

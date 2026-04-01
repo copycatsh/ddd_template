@@ -1,6 +1,6 @@
 <?php
 
-namespace App\UI\Console;
+namespace App\Account\Infrastructure\Console;
 
 use App\Account\Domain\Event\AccountCreatedEvent;
 use App\Account\Domain\Event\MoneyDepositedEvent;

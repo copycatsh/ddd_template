@@ -2,7 +2,8 @@
 
 namespace App\User\Domain\Entity;
 
-use ApiPlatform\Metadata\ApiResource;
+use App\User\Domain\Exception\SameEmailException;
+use App\User\Domain\ValueObject\Email;
 use App\User\Domain\ValueObject\UserRole;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
@@ -10,7 +11,6 @@ use Symfony\Component\Security\Core\User\UserInterface;
 
 #[ORM\Entity]
 #[ORM\Table(name: 'users')]
-#[ApiResource]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
@@ -32,13 +32,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(type: 'datetime_immutable')]
     private \DateTimeImmutable $updatedAt;
 
-    public function __construct(string $id, string $email, string $password, UserRole $role = UserRole::USER)
+    public function __construct(string $id, Email $email, string $password, UserRole $role = UserRole::USER)
     {
         $this->id = $id;
-        $this->email = $email;
+        $this->email = $email->getValue();
         $this->password = $password;
         $this->role = $role;
         $this->createdAt = new \DateTimeImmutable();
+        $this->updatedAt = new \DateTimeImmutable();
+    }
+
+    public function changeEmail(Email $newEmail): void
+    {
+        if ($this->getEmail()->equals($newEmail)) {
+            throw SameEmailException::create();
+        }
+
+        $this->email = $newEmail->getValue();
         $this->updatedAt = new \DateTimeImmutable();
     }
 
@@ -47,9 +57,9 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this->id;
     }
 
-    public function getEmail(): string
+    public function getEmail(): Email
     {
-        return $this->email;
+        return new Email($this->email);
     }
 
     public function getPassword(): string
@@ -74,5 +84,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function eraseCredentials(): void
     {
+    }
+
+    public function getCreatedAt(): \DateTimeImmutable
+    {
+        return $this->createdAt;
+    }
+
+    public function getUpdatedAt(): \DateTimeImmutable
+    {
+        return $this->updatedAt;
     }
 }

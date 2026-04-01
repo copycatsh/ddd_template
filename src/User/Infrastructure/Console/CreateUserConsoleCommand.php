@@ -1,6 +1,6 @@
 <?php
 
-namespace App\UI\Console;
+namespace App\User\Infrastructure\Console;
 
 use App\User\Application\Command\CreateUserCommand;
 use App\User\Application\Handler\CreateUserHandler;
