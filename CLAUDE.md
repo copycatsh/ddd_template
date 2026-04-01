@@ -9,7 +9,6 @@ All commands run inside Docker via Make. The PHP container is required for all P
 ```bash
 make setup          # First-time setup (copies .env, starts containers, installs deps, runs migrations)
 make up / make down # Start/stop containers
-make bash           # Shell into the PHP container
 
 # Testing
 make test                # All tests
@@ -24,10 +23,6 @@ docker compose exec php vendor/bin/phpunit --filter testMethodName
 # Code quality
 make cs-fix         # Auto-fix coding standards (php-cs-fixer)
 make phpstan        # Static analysis
-
-# Symfony console
-make sf CMD="list"           # Any bin/console command
-make cache-clear
 
 # Database
 make migrate        # Run pending migrations
