@@ -36,6 +36,7 @@ class TransactionCreatedNotificationHandler
         }
 
         $email = (new Email())
+            ->from('noreply@fintech.com')
             ->to($user->email)
             ->subject('Transaction created')
             ->text(sprintf(

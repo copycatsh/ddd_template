@@ -41,6 +41,7 @@ class TransactionFailedNotificationHandler
         }
 
         $email = (new Email())
+            ->from('noreply@fintech.com')
             ->to($user->email)
             ->subject('Transaction failed')
             ->text($body);

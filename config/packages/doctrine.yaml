@@ -29,6 +29,12 @@ doctrine:
               dir: '%kernel.project_dir%/src/Transaction/Domain/Entity'
               prefix: 'App\Transaction\Domain\Entity'
               alias: Transaction
+            Notification:
+              type: attribute
+              is_bundle: false
+              dir: '%kernel.project_dir%/src/Notification/Domain/Entity'
+              prefix: 'App\Notification\Domain\Entity'
+              alias: Notification
 
 when@prod:
     doctrine:
