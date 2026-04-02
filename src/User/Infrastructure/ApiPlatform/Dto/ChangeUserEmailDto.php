@@ -12,6 +12,7 @@ use Symfony\Component\Validator\Constraints as Assert;
     operations: [
         new Put(
             uriTemplate: '/users/{id}/email',
+            read: false,
             output: UserResource::class,
             processor: ChangeUserEmailStateProcessor::class
         ),

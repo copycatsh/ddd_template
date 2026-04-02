@@ -81,25 +81,6 @@ class TransferMoneySaga
             $this->transactionRepository->save($transaction);
 
             $this->connection->commit();
-
-            $this->messageBus->dispatch(
-                $this->integrationEventMapper->map(new TransactionCreatedEvent(
-                    $transactionId,
-                    $fromAccountId,
-                    TransactionType::TRANSFER,
-                    $amount->getAmount(),
-                    $amount->getCurrency()->value,
-                ))
-            );
-
-            $this->messageBus->dispatch(
-                $this->integrationEventMapper->map(new TransactionCompletedEvent(
-                    $transactionId,
-                    $fromAccountId,
-                ))
-            );
-
-            return $transactionId;
         } catch (\Exception $e) {
             try {
                 $this->connection->rollBack();
@@ -125,5 +106,24 @@ class TransferMoneySaga
 
             throw new \RuntimeException("Transfer failed: {$e->getMessage()}", 0, $e);
         }
+
+        $this->messageBus->dispatch(
+            $this->integrationEventMapper->map(new TransactionCreatedEvent(
+                $transactionId,
+                $fromAccountId,
+                TransactionType::TRANSFER,
+                $amount->getAmount(),
+                $amount->getCurrency()->value,
+            ))
+        );
+
+        $this->messageBus->dispatch(
+            $this->integrationEventMapper->map(new TransactionCompletedEvent(
+                $transactionId,
+                $fromAccountId,
+            ))
+        );
+
+        return $transactionId;
     }
 }

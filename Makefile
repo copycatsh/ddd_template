@@ -207,6 +207,28 @@ cs-fix: ## Fix coding standards
 phpstan: ## Run PHPStan static analysis
 	@$(DOCKER_PHP) vendor/bin/phpstan analyse
 
+##@ CLI Shortcuts
+
+.PHONY: routes
+routes: ## Show all API routes
+	@$(DOCKER_PHP) bin/console debug:router | grep api
+
+.PHONY: console
+console: ## Run Symfony console command (use: make console CMD="list")
+	@$(DOCKER_PHP) bin/console $(CMD)
+
+.PHONY: account-balance
+account-balance: ## Get account balance (use: make account-balance ID=uuid)
+	@$(DOCKER_PHP) bin/console app:get-account-balance $(ID)
+
+.PHONY: deposit
+deposit: ## Deposit money (use: make deposit ID=uuid AMOUNT=100.00 CURRENCY=USD)
+	@$(DOCKER_PHP) bin/console app:deposit-money $(ID) $(AMOUNT) $(CURRENCY)
+
+.PHONY: withdraw
+withdraw: ## Withdraw money (use: make withdraw ID=uuid AMOUNT=50.00 CURRENCY=USD)
+	@$(DOCKER_PHP) bin/console app:withdraw-money $(ID) $(AMOUNT) $(CURRENCY)
+
 ##@ Information
 
 .PHONY: info-urls

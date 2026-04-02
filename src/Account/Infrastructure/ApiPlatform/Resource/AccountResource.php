@@ -5,6 +5,7 @@ namespace App\Account\Infrastructure\ApiPlatform\Resource;
 use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Get;
 use ApiPlatform\Metadata\GetCollection;
+use ApiPlatform\Metadata\Link;
 use ApiPlatform\Metadata\Put;
 use App\Account\Domain\Entity\Account;
 use App\Account\Infrastructure\ApiPlatform\Dto\MoneyOperationDto;
@@ -25,21 +26,30 @@ use App\Shared\Domain\ValueObject\Currency;
         ),
         new GetCollection(
             uriTemplate: '/users/{userId}/accounts',
+            uriVariables: [
+                'userId' => new Link(
+                    parameterName: 'userId',
+                    identifiers: [],
+                ),
+            ],
             provider: UserAccountsStateProvider::class
         ),
         new Put(
             uriTemplate: '/accounts/{id}/deposit',
             input: MoneyOperationDto::class,
+            read: false,
             processor: DepositMoneyStateProcessor::class
         ),
         new Put(
             uriTemplate: '/accounts/{id}/withdraw',
             input: MoneyOperationDto::class,
+            read: false,
             processor: WithdrawMoneyStateProcessor::class
         ),
         new Put(
             uriTemplate: '/accounts/{id}/transfer',
             input: TransferMoneyDto::class,
+            read: false,
             processor: TransferMoneyStateProcessor::class
         ),
         new Get(

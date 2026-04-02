@@ -16,7 +16,7 @@ class DoctrineNotificationAccountQuery implements NotificationAccountQuery
     public function findByAccountId(string $accountId): ?NotificationAccountData
     {
         $row = $this->connection->fetchAssociative(
-            'SELECT id, user_id, currency FROM accounts WHERE id = :id',
+            'SELECT id, user_id, currency FROM account_projections WHERE id = :id',
             ['id' => $accountId]
         );
 

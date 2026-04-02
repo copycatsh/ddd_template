@@ -17,6 +17,7 @@ use App\User\Infrastructure\ApiPlatform\StateProvider\GetUserStateProvider;
         ),
         new Delete(
             uriTemplate: '/users/{id}',
+            provider: GetUserStateProvider::class,
             processor: DeleteUserStateProcessor::class
         ),
     ]
