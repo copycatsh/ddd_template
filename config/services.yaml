@@ -71,6 +71,11 @@ services:
     App\Transaction\Domain\Repository\TransactionRepositoryInterface:
       alias: App\Transaction\Infrastructure\Repository\DoctrineTransactionRepository
 
+    # JWT event listener — add userId to token payload
+    App\User\Infrastructure\Security\JwtCreatedListener:
+        tags:
+            - { name: kernel.event_listener, event: lexik_jwt_authentication.on_jwt_created, method: onJWTCreated }
+
     # OpenAPI JWT decorator
     App\Infrastructure\ApiPlatform\OpenApiJwtDecorator:
         decorates: 'api_platform.openapi.factory'
