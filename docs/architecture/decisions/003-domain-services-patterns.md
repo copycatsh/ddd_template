@@ -340,7 +340,7 @@ N/A ... internal refactor of an existing open-source reference implementation.
 7. Refactor TransferMoneySaga to delegate to domain service
 8. Update DomainExceptionSubscriber
 9. Full test suite sweep + PHPStan + cs-fix
-10. Update docs/architecture/overview.md
+10. Update docs/ARCHITECTURE.md
 
 ## What I noticed about how you think
 
