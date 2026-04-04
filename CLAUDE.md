@@ -34,7 +34,7 @@ make fixtures       # Load demo data (admin@fintech.com/admin123, user@fintech.c
 
 DDD + CQRS + Event Sourcing + Hexagonal Architecture on Symfony 7 / PHP 8.3.
 
-Full reference: [`docs/architecture/overview.md`](docs/architecture/overview.md)
+Full reference: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
 
 ### Key Domain Rules
 

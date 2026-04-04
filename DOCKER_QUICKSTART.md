@@ -34,17 +34,7 @@ make help          # Show all commands
 make ps            # Container status
 make logs          # View logs
 make bash          # Enter PHP container
-make es-test       # Test Event Sourcing
-```
-
-## Testing Event Sourcing
-
-```bash
-# Run Event Sourcing demo
-make es-test
-
-# Or manually:
-docker compose exec php bin/console app:test-event-sourcing
+make test          # Run tests
 ```
 
 ## Database Connection

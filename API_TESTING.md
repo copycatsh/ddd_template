@@ -62,9 +62,6 @@ make bash
 # Inside container, create user via console command
 bin/console app:create-user test@example.com password123
 
-# Or use Event Sourced version
-bin/console app:create-user-es test@example.com password123
-
 exit
 ```
 
@@ -138,25 +135,7 @@ curl http://localhost:8028/api/users/{user-id}/accounts \
   -H "Authorization: Bearer $TOKEN"
 ```
 
-## Testing Event Sourcing
-
-### Console Commands
-
-```bash
-# Run complete Event Sourcing test
-make es-test
-
-# Or manually inside container:
-make bash
-bin/console app:test-event-sourcing
-```
-
-This will:
-1. Create a user
-2. Create an account
-3. Perform deposit
-4. Perform withdrawal
-5. Display all events from event store
+## Inspecting the Event Store
 
 ### View Event Store
 
@@ -206,7 +185,6 @@ make ps            # Show container status
 make logs          # View logs (add SERVICE=php for specific service)
 make bash          # Enter PHP container
 make mysql         # Enter MySQL CLI
-make es-test       # Test Event Sourcing
 make cache-clear   # Clear Symfony cache
 ```
 

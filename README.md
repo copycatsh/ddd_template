@@ -56,4 +56,7 @@ Backend must be running first (`make setup`).
 
 ## Documentation
 
-- [Architecture overview](docs/architecture/overview.md)
+- [Architecture overview](docs/ARCHITECTURE.md)
+- [Docker setup](DOCKER.md) / [Quick start](DOCKER_QUICKSTART.md)
+- [API testing guide](API_TESTING.md)
+- [Changelog](CHANGELOG.md)

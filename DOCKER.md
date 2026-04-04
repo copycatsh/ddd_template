@@ -148,11 +148,8 @@ docker compose exec -T mysql mysql -u root -proot fintech_db < backup.sql
 # Database: fintech_db
 ```
 
-### Event Sourcing Commands
+### Console Commands
 ```bash
-# Test Event Sourcing
-docker compose exec php bin/console app:test-event-sourcing
-
 # Create user
 docker compose exec php bin/console app:create-user user@example.com password
 
@@ -160,6 +157,10 @@ docker compose exec php bin/console app:create-user user@example.com password
 docker compose exec php bin/console app:deposit-money <account-id> 100.00 USD
 docker compose exec php bin/console app:withdraw-money <account-id> 50.00 USD
 docker compose exec php bin/console app:get-account-balance <account-id>
+docker compose exec php bin/console app:transfer-money <from-id> <to-id> 50.00 USD
+
+# Rebuild projections
+docker compose exec php bin/console app:rebuild-account-projections
 ```
 
 ## Different Environments
